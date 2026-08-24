@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible problem with Pico REST
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      placeholder: 0.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: Pico device type
+      options:
+        - pool_controller
+        - led_controller
+        - elevator_monitor
+        - sun_wind_monitor
+        - pool_sensor_monitor
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include the expected and actual behaviour.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Home Assistant logs
+      render: text

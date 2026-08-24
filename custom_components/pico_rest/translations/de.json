@@ -1,0 +1,27 @@
+{
+  "title": "Pico REST",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pico-REST-Gerät hinzufügen",
+        "description": "Hostname oder IP-Adresse eines Geräts mit Pico REST API v1 eingeben.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder DNS-Name, ohne http://",
+          "port": "HTTP-Port des Pico (normalerweise 80)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum Pico konnte nicht hergestellt werden.",
+      "unsupported_device": "Das Gerät stellt keine unterstützte Pico REST API v1 bereit.",
+      "unknown": "Unerwarteter Fehler."
+    },
+    "abort": {
+      "already_configured": "Dieser Pico ist bereits eingerichtet."
+    }
+  }
+}

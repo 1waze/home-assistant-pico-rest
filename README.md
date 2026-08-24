@@ -1,0 +1,86 @@
+# Home Assistant Pico REST
+
+Custom Integration für Geräte mit **Pico REST API v1**.
+
+## Unterstützte Gerätetypen
+
+- `pool_controller`
+- `led_controller`
+- `elevator_monitor`
+- `sun_wind_monitor`
+- `pool_sensor_monitor`
+
+## Version 0.2.0
+
+v0.2.0 ergänzt die erste schreibende Steuerung über `/api/config`.
+
+### Poolsteuerung
+
+- Betriebsmodus (`auto` / `manual`)
+- Reinigungsmodus
+- Solltemperatur
+- Temperaturdifferenz Ein/Aus
+- Pumpen-Ein-/Ausschaltzeit
+
+### LED-Steuerung
+
+- Sonnenuntergang verwenden
+- Helligkeit
+- Effektgeschwindigkeit
+- Effektintensität
+- Zweifarben-Aufteilung
+- Standard-Effekt
+- Aufzug-Effekt und Aufzug-Geschwindigkeit
+- Montag bis Sonntag: Ein-/Ausschaltzeit und Effekt
+
+Die vorhandenen read-only Wochenplan-Sensoren aus v0.1.1 bleiben aus Kompatibilitätsgründen erhalten.
+
+### Sonnen-/Windabfrage
+
+- Wind-Grenzwert
+- Böen-Zähler-Grenzwert
+- Helligkeits-Grenzwert
+
+### Wartung
+
+Geräte mit `reboot`-Capability erhalten einen Neustart-Button.
+
+OTA, Rollback und Factory-Reset sind in v0.2.0 absichtlich noch nicht als HA-Aktionen freigegeben.
+
+## Installation
+
+Den Ordner
+
+`custom_components/pico_rest`
+
+nach
+
+`/config/custom_components/pico_rest`
+
+kopieren und Home Assistant neu starten.
+
+Danach unter **Einstellungen → Geräte & Dienste → Integration hinzufügen → Pico REST** den Host oder die IP-Adresse des Pico eintragen.
+
+## Hinweis zur Geräte-ID
+
+Pico REST API v1 liefert derzeit noch keine stabile Hardware-ID. Bis eine `device_id` auf Basis von `machine.unique_id()` verfügbar ist, verwendet die Integration Gerätetyp + Host als Übergangskennung.
+
+## Entwicklung
+
+Die Integration ist als eigenständiges GitHub-/HACS-Repository aufgebaut.
+Validierung erfolgt automatisch per GitHub Actions mit Hassfest, HACS und Ruff.
+
+Lokale Prüfungen:
+
+```bash
+python -m compileall -q custom_components tests
+ruff check custom_components tests
+```
+
+## Releases
+
+Versionen folgen Semantic Versioning. Für veröffentlichte Stände wird ein
+Git-Tag im Format `vX.Y.Z` verwendet, z. B. `v0.2.0`.
+
+Siehe auch [CHANGELOG.md](CHANGELOG.md) und
+[docs/pico-rest-api-v1.md](docs/pico-rest-api-v1.md).
