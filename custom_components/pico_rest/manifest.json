@@ -1,12 +1,14 @@
 {
   "domain": "pico_rest",
   "name": "Pico REST",
-  "codeowners": ["@1waze"],
+  "codeowners": [
+    "@1waze"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/1waze/home-assistant-pico-rest",
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/1waze/home-assistant-pico-rest/issues",
   "requirements": [],
-  "version": "0.2.1"
+  "version": "0.3.0"
 }

@@ -7,11 +7,17 @@ from dataclasses import dataclass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import PicoRestClient
-from .const import DEFAULT_PORT, PLATFORMS
+from .api import (
+    PicoRestClient,
+    PicoRestConnectionError,
+    PicoRestInvalidResponse,
+)
+from .const import DEFAULT_PORT, PLATFORMS, SUPPORTED_DEVICE_TYPES
 from .coordinator import PicoRestCoordinator
+from .migration import migrate_entry_identity
 
 
 @dataclass
@@ -33,8 +39,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: PicoRestConfigEntry) -> 
         entry.data[CONF_HOST],
         entry.data.get(CONF_PORT, DEFAULT_PORT),
     )
-    info = await client.async_get_info()
-    coordinator = PicoRestCoordinator(hass, client, info)
+
+    try:
+        info = await client.async_get_info()
+    except PicoRestConnectionError as err:
+        raise ConfigEntryNotReady(f"Cannot reach Pico REST device: {err}") from err
+    except PicoRestInvalidResponse as err:
+        raise ConfigEntryError(f"Invalid Pico REST device: {err}") from err
+
+    device_type = str(info.get("device_type", ""))
+    if device_type not in SUPPORTED_DEVICE_TYPES:
+        raise ConfigEntryError(f"Unsupported Pico REST device type: {device_type}")
+
+    device_id = str(info["device_id"])
+    migrate_entry_identity(hass, entry, device_type, device_id)
+
+    coordinator = PicoRestCoordinator(hass, entry, client, info)
     await coordinator.async_config_entry_first_refresh()
 
     entry.runtime_data = PicoRestRuntimeData(client=client, coordinator=coordinator)

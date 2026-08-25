@@ -61,9 +61,9 @@ kopieren und Home Assistant neu starten.
 
 Danach unter **Einstellungen → Geräte & Dienste → Integration hinzufügen → Pico REST** den Host oder die IP-Adresse des Pico eintragen.
 
-## Hinweis zur Geräte-ID
+## Geräte-ID
 
-Pico REST API v1 liefert derzeit noch keine stabile Hardware-ID. Bis eine `device_id` auf Basis von `machine.unique_id()` verfügbar ist, verwendet die Integration Gerätetyp + Host als Übergangskennung.
+Ab v0.3.0 verwendet die Integration die stabile `device_id` aus Pico REST API v1. Sie wird auf dem Pico aus `machine.unique_id()` abgeleitet und bleibt bei einem Wechsel der IP-Adresse oder des Hostnamens unverändert. Bestehende v0.2.x-Installationen werden beim ersten Start automatisch von der bisherigen Host-basierten Kennung migriert.
 
 ## Entwicklung
 
@@ -84,3 +84,9 @@ Git-Tag im Format `vX.Y.Z` verwendet, z. B. `v0.2.0`.
 
 Siehe auch [CHANGELOG.md](CHANGELOG.md) und
 [docs/pico-rest-api-v1.md](docs/pico-rest-api-v1.md).
+
+## v0.3.0 device identity and availability
+
+Version 0.3.0 uses the Pico REST API v1 `device_id` as stable hardware identity. Existing v0.2.x installations are migrated in place, including entity unique IDs, so existing Home Assistant entity IDs and customizations are retained.
+
+The integration now supports Home Assistant's **Reconfigure** flow to change a Pico's IP address or hostname while verifying that the new address belongs to the same physical Pico. Coordinator-backed entities automatically become unavailable during communication failures and recover when the device returns.

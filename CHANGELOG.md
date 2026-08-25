@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+
+- Use Pico hardware `device_id` as stable Home Assistant config-entry, device, and entity identity.
+- Migrate v0.2.x host-based device/entity unique IDs in place to preserve existing entity IDs and customizations.
+- Add reconfigure flow for changing IP address/hostname without deleting the integration.
+- Verify the hardware identity during reconfiguration.
+- Mark coordinator-backed entities unavailable when polling fails and recover automatically.
+- Improve setup error handling for unreachable and invalid Pico REST devices.
+- Revalidate `/api/info` periodically and reject identity changes at the configured host.
+- Add diagnostic sensor for the last successful contact.
+- Require Pico REST API v1 `device_id`.
 
 ## 0.2.1
 

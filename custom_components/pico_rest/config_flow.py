@@ -15,6 +15,20 @@ from .api import PicoRestClient, PicoRestConnectionError, PicoRestInvalidRespons
 from .const import DEFAULT_PORT, DOMAIN, SUPPORTED_DEVICE_TYPES
 
 
+def _normalize_input(data: dict[str, Any]) -> dict[str, Any]:
+    host = (
+        data[CONF_HOST]
+        .strip()
+        .removeprefix("http://")
+        .removeprefix("https://")
+        .rstrip("/")
+    )
+    return {
+        CONF_HOST: host,
+        CONF_PORT: data.get(CONF_PORT, DEFAULT_PORT),
+    }
+
+
 async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     client = PicoRestClient(
         async_get_clientsession(hass),
@@ -28,6 +42,18 @@ async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str
     return info
 
 
+def _schema(host: str | None = None, port: int = DEFAULT_PORT) -> vol.Schema:
+    host_field = vol.Required(CONF_HOST, default=host) if host else vol.Required(CONF_HOST)
+    return vol.Schema(
+        {
+            host_field: str,
+            vol.Optional(CONF_PORT, default=port): vol.All(
+                vol.Coerce(int), vol.Range(min=1, max=65535)
+            ),
+        }
+    )
+
+
 class PicoRestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Pico REST."""
 
@@ -36,28 +62,11 @@ class PicoRestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        """Set up a Pico REST device."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            host = (
-                user_input[CONF_HOST]
-                .strip()
-                .removeprefix("http://")
-                .removeprefix("https://")
-                .rstrip("/")
-            )
-            port = user_input.get(CONF_PORT, DEFAULT_PORT)
-            user_input = {CONF_HOST: host, CONF_PORT: port}
-
-            # Pico REST API v1 currently has no hardware UID. Prevent duplicate
-            # entries by host until the protocol exposes a stable device ID.
-            for entry in self._async_current_entries():
-                if (
-                    entry.data.get(CONF_HOST) == host
-                    and entry.data.get(CONF_PORT, DEFAULT_PORT) == port
-                ):
-                    return self.async_abort(reason="already_configured")
-
+            user_input = _normalize_input(user_input)
             try:
                 info = await _validate_input(self.hass, user_input)
             except PicoRestConnectionError:
@@ -67,15 +76,58 @@ class PicoRestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception:  # noqa: BLE001
                 errors["base"] = "unknown"
             else:
-                title = str(info.get("device_name") or info.get("device_type") or host)
+                device_id = str(info["device_id"])
+                await self.async_set_unique_id(device_id)
+                self._abort_if_unique_id_configured(
+                    updates={
+                        CONF_HOST: user_input[CONF_HOST],
+                        CONF_PORT: user_input[CONF_PORT],
+                    }
+                )
+                title = str(
+                    info.get("device_name") or info.get("device_type") or device_id
+                )
                 return self.async_create_entry(title=title, data=user_input)
 
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_HOST): str,
-                vol.Optional(CONF_PORT, default=DEFAULT_PORT): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=65535)
-                ),
-            }
+        return self.async_show_form(
+            step_id="user",
+            data_schema=_schema(),
+            errors=errors,
         )
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Allow changing the network address without recreating the device."""
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            user_input = _normalize_input(user_input)
+            try:
+                info = await _validate_input(self.hass, user_input)
+            except PicoRestConnectionError:
+                errors["base"] = "cannot_connect"
+            except PicoRestInvalidResponse:
+                errors["base"] = "unsupported_device"
+            except Exception:  # noqa: BLE001
+                errors["base"] = "unknown"
+            else:
+                await self.async_set_unique_id(str(info["device_id"]))
+                self._abort_if_unique_id_mismatch()
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates={
+                        CONF_HOST: user_input[CONF_HOST],
+                        CONF_PORT: user_input[CONF_PORT],
+                    },
+                )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_schema(
+                str(entry.data[CONF_HOST]),
+                int(entry.data.get(CONF_PORT, DEFAULT_PORT)),
+            ),
+            errors=errors,
+        )

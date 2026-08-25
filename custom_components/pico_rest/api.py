@@ -77,7 +77,7 @@ class PicoRestClient:
         return data
 
     async def async_get_info(self) -> dict[str, Any]:
-        """Read /api/info and validate the protocol marker."""
+        """Read /api/info and validate Pico REST API v1 identity."""
         info = await self._get_json("/api/info")
         if info.get("api") != "pico-rest":
             raise PicoRestInvalidResponse("Device does not identify as pico-rest")
@@ -85,6 +85,12 @@ class PicoRestClient:
             raise PicoRestInvalidResponse(
                 f"Unsupported Pico REST API version: {info.get('api_version')}"
             )
+        device_id = info.get("device_id")
+        if not isinstance(device_id, str) or not device_id.strip():
+            raise PicoRestInvalidResponse(
+                "Pico REST API v1 device does not provide a stable device_id"
+            )
+        info["device_id"] = device_id.strip().lower()
         return info
 
     async def async_get_status(self) -> dict[str, Any]:

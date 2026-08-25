@@ -55,6 +55,12 @@ def _free_mem(data: dict[str, Any]) -> int | None:
 
 COMMON_DIAGNOSTIC = (
     PicoSensorDescription(
+        key="ip",
+        name="IP-Adresse",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_path("ip"),
+    ),
+    PicoSensorDescription(
         key="wifi_rssi",
         name="WLAN Signal",
         native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
@@ -246,6 +252,43 @@ DEVICE_SENSORS: dict[str, tuple[PicoSensorDescription, ...]] = {
 }
 
 
+class PicoInfoSensor(PicoRestEntity, SensorEntity):
+    """Diagnostic value sourced from /api/info."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, key: str, name: str) -> None:
+        super().__init__(coordinator, f"info_{key}")
+        self._info_key = key
+        self._attr_name = name
+
+    @property
+    def native_value(self) -> Any:
+        """Return a value from the most recently validated device info."""
+        return self.coordinator.info.get(self._info_key)
+
+
+class PicoLastContactSensor(PicoRestEntity, SensorEntity):
+    """Diagnostic timestamp of the last successful poll."""
+
+    _attr_name = "Letzter erfolgreicher Kontakt"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "last_successful_contact")
+
+    @property
+    def available(self) -> bool:
+        """Keep this diagnostic available after the Pico goes offline."""
+        return self.coordinator.last_successful_update is not None
+
+    @property
+    def native_value(self):
+        """Return the last successful coordinator update."""
+        return self.coordinator.last_successful_update
+
+
 class PicoRestSensor(PicoRestEntity, SensorEntity):
     """Generic sensor backed by one key in coordinator data."""
 
@@ -331,8 +374,13 @@ async def async_setup_entry(
     device_type = str(coordinator.info.get("device_type", ""))
     descriptions = DEVICE_SENSORS.get(device_type, ()) + COMMON_DIAGNOSTIC
     entities: list[SensorEntity] = [
-        PicoRestSensor(coordinator, description) for description in descriptions
+        PicoInfoSensor(coordinator, "api_version", "API-Version"),
+        PicoInfoSensor(coordinator, "firmware", "Firmware"),
+        PicoLastContactSensor(coordinator),
     ]
+    entities.extend(
+        PicoRestSensor(coordinator, description) for description in descriptions
+    )
 
     if device_type == "led_controller":
         config = (coordinator.data or {}).get("_config", {})

@@ -13,6 +13,18 @@
           "host": "IP-Adresse oder DNS-Name, ohne http://",
           "port": "HTTP-Port des Pico (normalerweise 80)"
         }
+      },
+      "reconfigure": {
+        "title": "Pico-REST-Verbindung ändern",
+        "description": "Neue IP-Adresse bzw. neuen Hostnamen eingeben. Die Geräte-ID wird geprüft, damit nicht versehentlich ein anderer Pico zugeordnet wird.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "Neue IP-Adresse oder DNS-Name, ohne http://",
+          "port": "HTTP-Port des Pico (normalerweise 80)"
+        }
       }
     },
     "error": {
@@ -21,7 +33,9 @@
       "unknown": "Unerwarteter Fehler."
     },
     "abort": {
-      "already_configured": "Dieser Pico ist bereits eingerichtet."
+      "already_configured": "Dieser Pico ist bereits eingerichtet.",
+      "reconfigure_successful": "Die Pico-REST-Verbindung wurde aktualisiert.",
+      "unique_id_mismatch": "Unter dieser Adresse wurde ein anderer Pico gefunden. Die Geräte-ID stimmt nicht überein."
     }
   }
 }

@@ -13,6 +13,18 @@
           "host": "IP address or DNS name, without http://",
           "port": "HTTP port of the Pico (normally 80)"
         }
+      },
+      "reconfigure": {
+        "title": "Change Pico REST connection",
+        "description": "Enter the new IP address or hostname. The hardware device ID is verified to prevent assigning a different Pico by mistake.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "New IP address or DNS name, without http://",
+          "port": "HTTP port of the Pico (normally 80)"
+        }
       }
     },
     "error": {
@@ -21,7 +33,9 @@
       "unknown": "Unexpected error."
     },
     "abort": {
-      "already_configured": "This Pico is already configured."
+      "already_configured": "This Pico is already configured.",
+      "reconfigure_successful": "The Pico REST connection was updated.",
+      "unique_id_mismatch": "A different Pico was found at this address. The device ID does not match."
     }
   }
 }
