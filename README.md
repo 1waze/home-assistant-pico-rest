@@ -10,9 +10,14 @@ Custom Integration für Geräte mit **Pico REST API v1**.
 - `sun_wind_monitor`
 - `pool_sensor_monitor`
 
-## Version 0.2.1
+## Aktueller Stand
 
-v0.2.1 enthält die v0.2.0-Steuerfunktionen und korrigiert die GitHub/HACS/Hassfest-Validierung.
+**Release:** v0.2.1  
+**Entwicklung:** v0.3.0
+
+v0.3.0 befindet sich derzeit in Entwicklung und erweitert Pico REST
+um stabile Geräte-IDs, robustere Verbindungsbehandlung und
+Reconfigure-Unterstützung.
 
 ### Poolsteuerung
 
