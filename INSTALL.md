@@ -1,6 +1,6 @@
 # Installation / Update
 
-## Update von v0.1.x auf v0.2.0
+## Update auf v0.2.1
 
 1. Home Assistant nicht zwingend vorher stoppen.
 2. Den vorhandenen Ordner `/config/custom_components/pico_rest` durch den Ordner `custom_components/pico_rest` aus diesem Paket ersetzen.

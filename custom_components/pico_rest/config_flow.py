@@ -39,7 +39,13 @@ class PicoRestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            host = user_input[CONF_HOST].strip().removeprefix("http://").removeprefix("https://").rstrip("/")
+            host = (
+                user_input[CONF_HOST]
+                .strip()
+                .removeprefix("http://")
+                .removeprefix("https://")
+                .rstrip("/")
+            )
             port = user_input.get(CONF_PORT, DEFAULT_PORT)
             user_input = {CONF_HOST: host, CONF_PORT: port}
 

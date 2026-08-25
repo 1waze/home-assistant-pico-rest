@@ -1,5 +1,13 @@
 # Changelog
 
+
+## 0.2.1
+
+- Fix Home Assistant/HACS manifest validation by adding codeowners, documentation and issue tracker.
+- Add local brand icon required by HACS.
+- Fix Ruff style issues in sensor and binary sensor platforms.
+- Use the Python 3.13 `type` alias syntax for the config entry alias.
+
 ## 0.2.0
 
 - Erste schreibende Version der Integration.

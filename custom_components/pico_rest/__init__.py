@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeAlias
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
@@ -23,7 +22,7 @@ class PicoRestRuntimeData:
     coordinator: PicoRestCoordinator
 
 
-PicoRestConfigEntry: TypeAlias = ConfigEntry[PicoRestRuntimeData]
+type PicoRestConfigEntry = ConfigEntry[PicoRestRuntimeData]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: PicoRestConfigEntry) -> bool:
