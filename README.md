@@ -12,11 +12,9 @@ Custom Integration für Geräte mit **Pico REST API v1**.
 
 ## Aktueller Stand
 
-**Release:** v0.3.0  
-**Entwicklung:** v0.4.0
+**Release:** v0.4.0
 
-v0.4.0 baut die bereits vorhandenen Steuerfunktionen weiter zu nativen
-Home-Assistant-Bedienelementen aus.
+v0.4.0 erweitert die bereits vorhandenen Steuerfunktionen um zusätzliche native Home-Assistant-Bedienelemente.
 
 ### Poolsteuerung
 
