@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0
+
+- Add manual pool pump and valve switches; they are only available in manual mode.
+- Add a capability-driven firmware rollback button, disabled by default.
+- Keep reboot capability-driven and surface Pico action errors as Home Assistant errors.
+- Reject Pico REST action responses that explicitly return `ok: false`.
+- Create writable config entities only when the Pico advertises the `config` capability.
+- Add LED controls for effect delay, elevator delay, and elevator polling interval.
+- Refresh coordinator data immediately after successful config writes.
+
 ## 0.3.0
 
 - Use Pico hardware `device_id` as stable Home Assistant config-entry, device, and entity identity.

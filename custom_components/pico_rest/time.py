@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import PicoRestConfigEntry
 from .const import WEEKDAYS
-from .control import async_write_config, config_value
+from .control import async_write_config, config_value, has_capability
 from .entity import PicoRestEntity
 
 
@@ -75,6 +75,8 @@ async def async_setup_entry(
 ) -> None:
     coordinator = entry.runtime_data.coordinator
     device_type = str(coordinator.info.get("device_type", ""))
+    if not has_capability(coordinator, "config"):
+        return
     entities: list[TimeEntity] = []
 
     if device_type == "pool_controller":

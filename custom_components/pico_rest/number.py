@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import PicoRestConfigEntry
-from .control import async_write_config, config_value
+from .control import async_write_config, config_value, has_capability
 from .entity import PicoRestEntity
 
 
@@ -99,6 +99,33 @@ DEVICE_NUMBERS: dict[str, tuple[PicoNumberDescription, ...]] = {
             native_step=1,
             mode=NumberMode.SLIDER,
         ),
+        PicoNumberDescription(
+            key="config_effect_delay_ms",
+            name="Effekt-Verzögerung",
+            config_key="effect_delay_ms",
+            native_min_value=0,
+            native_max_value=1000,
+            native_step=1,
+            mode=NumberMode.BOX,
+        ),
+        PicoNumberDescription(
+            key="config_elevator_delay_ms",
+            name="Aufzug-Verzögerung",
+            config_key="elevator_delay_ms",
+            native_min_value=0,
+            native_max_value=1000,
+            native_step=1,
+            mode=NumberMode.BOX,
+        ),
+        PicoNumberDescription(
+            key="config_elevator_poll_seconds",
+            name="Aufzug-Abfrageintervall",
+            config_key="elevator_poll_seconds",
+            native_min_value=0.2,
+            native_max_value=60,
+            native_step=0.2,
+            mode=NumberMode.BOX,
+        ),
     ),
     "sun_wind_monitor": (
         PicoNumberDescription(
@@ -170,6 +197,8 @@ async def async_setup_entry(
 ) -> None:
     coordinator = entry.runtime_data.coordinator
     device_type = str(coordinator.info.get("device_type", ""))
+    if not has_capability(coordinator, "config"):
+        return
     async_add_entities(
         PicoRestNumber(coordinator, description)
         for description in DEVICE_NUMBERS.get(device_type, ())

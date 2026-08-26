@@ -74,6 +74,11 @@ class PicoRestClient:
 
         if not isinstance(data, dict):
             raise PicoRestInvalidResponse(f"Expected JSON object from POST {path}")
+
+        if data.get("ok") is False:
+            detail = data.get("error") or data.get("message") or "operation failed"
+            raise PicoRestInvalidResponse(f"POST {path} failed: {detail}")
+
         return data
 
     async def async_get_info(self) -> dict[str, Any]:
@@ -108,3 +113,7 @@ class PicoRestClient:
     async def async_reboot(self) -> dict[str, Any]:
         """Request a device reboot."""
         return await self._post_json("/api/reboot")
+
+    async def async_rollback(self) -> dict[str, Any]:
+        """Request a firmware rollback."""
+        return await self._post_json("/api/rollback")

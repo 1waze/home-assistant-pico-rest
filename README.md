@@ -12,12 +12,11 @@ Custom Integration für Geräte mit **Pico REST API v1**.
 
 ## Aktueller Stand
 
-**Release:** v0.2.1  
-**Entwicklung:** v0.3.0
+**Release:** v0.3.0  
+**Entwicklung:** v0.4.0
 
-v0.3.0 befindet sich derzeit in Entwicklung und erweitert Pico REST
-um stabile Geräte-IDs, robustere Verbindungsbehandlung und
-Reconfigure-Unterstützung.
+v0.4.0 baut die bereits vorhandenen Steuerfunktionen weiter zu nativen
+Home-Assistant-Bedienelementen aus.
 
 ### Poolsteuerung
 
@@ -26,19 +25,23 @@ Reconfigure-Unterstützung.
 - Solltemperatur
 - Temperaturdifferenz Ein/Aus
 - Pumpen-Ein-/Ausschaltzeit
+- Pumpe manuell schalten (nur im manuellen Modus verfügbar)
+- Ventil manuell schalten (nur im manuellen Modus verfügbar)
 
 ### LED-Steuerung
 
 - Sonnenuntergang verwenden
 - Helligkeit
-- Effektgeschwindigkeit
-- Effektintensität
+- Effektgeschwindigkeit und Effektintensität
+- Effekt-Verzögerung
 - Zweifarben-Aufteilung
 - Standard-Effekt
 - Aufzug-Effekt und Aufzug-Geschwindigkeit
+- Aufzug-Verzögerung und Aufzug-Abfrageintervall
 - Montag bis Sonntag: Ein-/Ausschaltzeit und Effekt
 
-Die vorhandenen read-only Wochenplan-Sensoren aus v0.1.1 bleiben aus Kompatibilitätsgründen erhalten.
+Die vorhandenen read-only Wochenplan-Sensoren bleiben aus
+Kompatibilitätsgründen erhalten.
 
 ### Sonnen-/Windabfrage
 
@@ -48,32 +51,33 @@ Die vorhandenen read-only Wochenplan-Sensoren aus v0.1.1 bleiben aus Kompatibili
 
 ### Wartung
 
-Geräte mit `reboot`-Capability erhalten einen Neustart-Button.
+Wartungsaktionen werden anhand der von `/api/info` gemeldeten
+`capabilities` erzeugt:
 
-OTA, Rollback und Factory-Reset sind in v0.2.0 absichtlich noch nicht als HA-Aktionen freigegeben.
+- Neustart
+- Firmware-Rollback (standardmäßig deaktiviert)
+
+OTA selbst wird weiterhin nicht direkt aus Home Assistant ausgelöst.
+
+## Geräte-ID und Verfügbarkeit
+
+Seit v0.3.0 verwendet die Integration die stabile `device_id` aus Pico REST
+API v1. Bestehende v0.2.x-Installationen werden automatisch migriert.
+Ein Reconfigure-Flow erlaubt Änderungen von IP-Adresse oder Hostname, ohne
+das Gerät in Home Assistant neu anzulegen.
 
 ## Installation
 
-Den Ordner
-
-`custom_components/pico_rest`
-
-nach
-
-`/config/custom_components/pico_rest`
-
-kopieren und Home Assistant neu starten.
-
-Danach unter **Einstellungen → Geräte & Dienste → Integration hinzufügen → Pico REST** den Host oder die IP-Adresse des Pico eintragen.
-
-## Geräte-ID
-
-Ab v0.3.0 verwendet die Integration die stabile `device_id` aus Pico REST API v1. Sie wird auf dem Pico aus `machine.unique_id()` abgeleitet und bleibt bei einem Wechsel der IP-Adresse oder des Hostnamens unverändert. Bestehende v0.2.x-Installationen werden beim ersten Start automatisch von der bisherigen Host-basierten Kennung migriert.
+Empfohlen ist die Installation über HACS als Custom Repository. Alternativ
+kann `custom_components/pico_rest` nach `/config/custom_components/pico_rest`
+kopiert werden. Danach Home Assistant neu starten und unter
+**Einstellungen → Geräte & Dienste → Integration hinzufügen → Pico REST**
+den Pico hinzufügen.
 
 ## Entwicklung
 
 Die Integration ist als eigenständiges GitHub-/HACS-Repository aufgebaut.
-Validierung erfolgt automatisch per GitHub Actions mit Hassfest, HACS und Ruff.
+Validierung erfolgt per GitHub Actions mit Hassfest, HACS und Ruff.
 
 Lokale Prüfungen:
 
@@ -82,16 +86,8 @@ python -m compileall -q custom_components tests
 ruff check custom_components tests
 ```
 
-## Releases
-
 Versionen folgen Semantic Versioning. Für veröffentlichte Stände wird ein
-Git-Tag im Format `vX.Y.Z` verwendet, z. B. `v0.2.0`.
+Git-Tag im Format `vX.Y.Z` verwendet.
 
 Siehe auch [CHANGELOG.md](CHANGELOG.md) und
 [docs/pico-rest-api-v1.md](docs/pico-rest-api-v1.md).
-
-## v0.3.0 device identity and availability
-
-Version 0.3.0 uses the Pico REST API v1 `device_id` as stable hardware identity. Existing v0.2.x installations are migrated in place, including entity unique IDs, so existing Home Assistant entity IDs and customizations are retained.
-
-The integration now supports Home Assistant's **Reconfigure** flow to change a Pico's IP address or hostname while verifying that the new address belongs to the same physical Pico. Coordinator-backed entities automatically become unavailable during communication failures and recover when the device returns.

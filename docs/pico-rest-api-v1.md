@@ -56,6 +56,32 @@ Returns the current runtime values of the device. The exact payload depends on `
 
 Devices announcing the `config` capability provide a typed JSON object through `GET /api/config` and accept partial configuration patches through `POST /api/config`.
 
+Configuration writes are partial updates. A client may send only the value that changed; unrelated settings must remain unchanged. A successful write should return a JSON object with `ok: true`. Controlled validation errors should return `ok: false` or an HTTP 4xx response with an `error` or `message` field.
+
+Example:
+
+```http
+POST /api/config
+Content-Type: application/json
+```
+
+```json
+{
+  "target_temp": 27.5
+}
+```
+
+Successful response example:
+
+```json
+{
+  "ok": true,
+  "config": {
+    "target_temp": 27.5
+  }
+}
+```
+
 ## Maintenance endpoints
 
 Depending on the announced capabilities, devices may implement:
@@ -66,3 +92,5 @@ Depending on the announced capabilities, devices may implement:
 - `POST /api/factory_reset`
 
 Maintenance actions should return a JSON object containing at least an `ok` boolean and a human-readable `message` when applicable.
+
+Home Assistant v0.4.0 exposes `reboot` and `rollback` actions when advertised. `factory_reset` remains intentionally unexposed until its behavior is fully standardized across all Pico firmwares.
