@@ -57,6 +57,7 @@ COMMON_DIAGNOSTIC = (
     PicoSensorDescription(
         key="ip",
         name="IP-Adresse",
+        entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=_path("ip"),
     ),
@@ -102,28 +103,33 @@ DEVICE_SENSORS: dict[str, tuple[PicoSensorDescription, ...]] = {
         PicoSensorDescription(
             key="mode",
             name="Betriebsmodus",
+            entity_registry_enabled_default=False,
             value_fn=_path("mode"),
         ),
         PicoSensorDescription(
             key="wifi_quality",
+            entity_registry_enabled_default=False,
             name="WLAN Qualität",
             entity_category=EntityCategory.DIAGNOSTIC,
             value_fn=_path("wifi_quality"),
         ),
         PicoSensorDescription(
             key="wifi_reconnects",
+            entity_registry_enabled_default=False,
             name="WLAN Reconnects",
             entity_category=EntityCategory.DIAGNOSTIC,
             value_fn=_path("wifi_reconnects"),
         ),
         PicoSensorDescription(
             key="wifi_interface_resets",
+            entity_registry_enabled_default=False,
             name="WLAN Interface-Resets",
             entity_category=EntityCategory.DIAGNOSTIC,
             value_fn=_path("wifi_interface_resets"),
         ),
         PicoSensorDescription(
             key="wifi_offline_sec",
+            entity_registry_enabled_default=False,
             name="WLAN Offlinezeit",
             native_unit_of_measurement=UnitOfTime.SECONDS,
             entity_category=EntityCategory.DIAGNOSTIC,
@@ -131,19 +137,27 @@ DEVICE_SENSORS: dict[str, tuple[PicoSensorDescription, ...]] = {
         ),
     ),
     "led_controller": (
-        PicoSensorDescription(key="effect", name="Effekt", value_fn=_path("effect")),
+        PicoSensorDescription(
+            key="effect",
+            name="Effekt",
+            entity_registry_enabled_default=False,
+            value_fn=_path("effect"),
+        ),
         PicoSensorDescription(
             key="effect_speed",
+            entity_registry_enabled_default=False,
             name="Effektgeschwindigkeit",
             value_fn=_path("effect_speed"),
         ),
         PicoSensorDescription(
             key="effect_intensity",
+            entity_registry_enabled_default=False,
             name="Effektintensität",
             value_fn=_path("effect_intensity"),
         ),
         PicoSensorDescription(
             key="two_color_split",
+            entity_registry_enabled_default=False,
             name="Zweifarben-Aufteilung",
             value_fn=_path("two_color_split"),
         ),
@@ -154,11 +168,13 @@ DEVICE_SENSORS: dict[str, tuple[PicoSensorDescription, ...]] = {
         ),
         PicoSensorDescription(
             key="elevator_effect",
+            entity_registry_enabled_default=False,
             name="Aufzug-Effekt",
             value_fn=_path("elevator_effect"),
         ),
         PicoSensorDescription(
             key="elevator_speed",
+            entity_registry_enabled_default=False,
             name="Aufzug-Geschwindigkeit",
             value_fn=_path("elevator_speed"),
         ),
@@ -179,18 +195,21 @@ DEVICE_SENSORS: dict[str, tuple[PicoSensorDescription, ...]] = {
         ),
         PicoSensorDescription(
             key="wifi_reconnects",
+            entity_registry_enabled_default=False,
             name="WLAN Reconnects",
             entity_category=EntityCategory.DIAGNOSTIC,
             value_fn=_path("wifi_reconnects"),
         ),
         PicoSensorDescription(
             key="wifi_interface_resets",
+            entity_registry_enabled_default=False,
             name="WLAN Interface-Resets",
             entity_category=EntityCategory.DIAGNOSTIC,
             value_fn=_path("wifi_interface_resets"),
         ),
         PicoSensorDescription(
             key="wifi_offline_sec",
+            entity_registry_enabled_default=False,
             name="WLAN Offlinezeit",
             native_unit_of_measurement=UnitOfTime.SECONDS,
             entity_category=EntityCategory.DIAGNOSTIC,
@@ -202,6 +221,7 @@ DEVICE_SENSORS: dict[str, tuple[PicoSensorDescription, ...]] = {
         PicoSensorDescription(key="hell", name="Helligkeit", value_fn=_path("hell")),
         PicoSensorDescription(
             key="cpu",
+            entity_registry_enabled_default=False,
             name="CPU-Temperatur",
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             entity_category=EntityCategory.DIAGNOSTIC,
@@ -209,6 +229,7 @@ DEVICE_SENSORS: dict[str, tuple[PicoSensorDescription, ...]] = {
         ),
         PicoSensorDescription(
             key="uptime_ms",
+            entity_registry_enabled_default=False,
             name="Uptime",
             native_unit_of_measurement="ms",
             entity_category=EntityCategory.DIAGNOSTIC,
@@ -224,6 +245,7 @@ DEVICE_SENSORS: dict[str, tuple[PicoSensorDescription, ...]] = {
         ),
         PicoSensorDescription(
             key="uptime_sec",
+            entity_registry_enabled_default=False,
             name="Uptime",
             native_unit_of_measurement=UnitOfTime.SECONDS,
             entity_category=EntityCategory.DIAGNOSTIC,
@@ -231,18 +253,21 @@ DEVICE_SENSORS: dict[str, tuple[PicoSensorDescription, ...]] = {
         ),
         PicoSensorDescription(
             key="wifi_reconnects",
+            entity_registry_enabled_default=False,
             name="WLAN Reconnects",
             entity_category=EntityCategory.DIAGNOSTIC,
             value_fn=_path("wifi_reconnects"),
         ),
         PicoSensorDescription(
             key="wifi_interface_resets",
+            entity_registry_enabled_default=False,
             name="WLAN Interface-Resets",
             entity_category=EntityCategory.DIAGNOSTIC,
             value_fn=_path("wifi_interface_resets"),
         ),
         PicoSensorDescription(
             key="wifi_offline_sec",
+            entity_registry_enabled_default=False,
             name="WLAN Offlinezeit",
             native_unit_of_measurement=UnitOfTime.SECONDS,
             entity_category=EntityCategory.DIAGNOSTIC,
@@ -256,6 +281,7 @@ class PicoInfoSensor(PicoRestEntity, SensorEntity):
     """Diagnostic value sourced from /api/info."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator, key: str, name: str) -> None:
         super().__init__(coordinator, f"info_{key}")
@@ -274,6 +300,7 @@ class PicoLastContactSensor(PicoRestEntity, SensorEntity):
     _attr_name = "Letzter erfolgreicher Kontakt"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator) -> None:
         super().__init__(coordinator, "last_successful_contact")
@@ -307,6 +334,8 @@ class PicoRestSensor(PicoRestEntity, SensorEntity):
 
 class LedScheduleSensor(PicoRestEntity, SensorEntity):
     """One read-only value from the LED controller weekly schedule."""
+
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator, day_key: str, day_name: str, field: str) -> None:
         """Initialize a weekly schedule sensor."""

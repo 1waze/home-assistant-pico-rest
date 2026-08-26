@@ -24,7 +24,7 @@ DEVICE_SELECTS: dict[str, tuple[PicoSelectDescription, ...]] = {
     "pool_controller": (
         PicoSelectDescription(
             key="config_mode",
-            name="Betriebsmodus Einstellung",
+            name="Betriebsmodus",
             config_key="mode",
             options=("auto", "manual"),
         ),
@@ -38,7 +38,7 @@ DEVICE_SELECTS: dict[str, tuple[PicoSelectDescription, ...]] = {
         ),
         PicoSelectDescription(
             key="config_elevator_effect",
-            name="Aufzug-Effekt Einstellung",
+            name="Aufzug-Effekt",
             config_key="elevator_effect",
             options=LED_ELEVATOR_EFFECTS,
         ),
@@ -75,7 +75,7 @@ class LedScheduleEffectSelect(PicoRestEntity, SelectEntity):
     def __init__(self, coordinator, day_key: str, day_name: str) -> None:
         super().__init__(coordinator, f"schedule_control_{day_key}_effect")
         self._day_key = day_key
-        self._attr_name = f"{day_name} Effekt Einstellung"
+        self._attr_name = f"{day_name} Effekt"
 
     @property
     def current_option(self) -> str | None:

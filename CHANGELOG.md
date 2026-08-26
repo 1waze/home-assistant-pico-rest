@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.1
+
+- UX cleanup for the automatic Home Assistant device pages.
+- Shorten and standardize writable entity names.
+- Rename pool differential controls to `Differenz Einschalten` and `Differenz Ausschalten`.
+- Rename sun/wind threshold controls to clearer German labels.
+- Disable redundant read-only pool mode/cleaning entities by default.
+- Disable duplicate LED config and weekly schedule sensors by default; writable controls remain visible.
+- Disable API version, firmware, IP address and last-successful-contact entities by default.
+- Migrate existing v0.4.0 registry entries to the new disabled defaults without deleting them.
+- Prevent the last-successful-contact timestamp from flooding the Home Assistant activity log by disabling that diagnostic entity by default.
+
 ## 0.4.0
 
 - Add manual pool pump and valve switches; they are only available in manual mode.

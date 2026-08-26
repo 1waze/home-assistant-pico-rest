@@ -23,7 +23,7 @@ DEVICE_SWITCHES: dict[str, tuple[PicoSwitchDescription, ...]] = {
     "pool_controller": (
         PicoSwitchDescription(
             key="config_clean_mode",
-            name="Reinigungsmodus Einstellung",
+            name="Reinigungsmodus",
             config_key="clean_mode",
         ),
     ),

@@ -17,7 +17,7 @@ from .api import (
 )
 from .const import DEFAULT_PORT, PLATFORMS, SUPPORTED_DEVICE_TYPES
 from .coordinator import PicoRestCoordinator
-from .migration import migrate_entry_identity
+from .migration import apply_v041_entity_cleanup, migrate_entry_identity
 
 
 @dataclass
@@ -53,6 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PicoRestConfigEntry) -> 
 
     device_id = str(info["device_id"])
     migrate_entry_identity(hass, entry, device_type, device_id)
+    apply_v041_entity_cleanup(hass, entry, device_type, device_id)
 
     coordinator = PicoRestCoordinator(hass, entry, client, info)
     await coordinator.async_config_entry_first_refresh()

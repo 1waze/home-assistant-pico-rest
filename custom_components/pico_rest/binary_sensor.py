@@ -42,6 +42,7 @@ DEVICE_BINARY_SENSORS: dict[str, tuple[PicoBinaryDescription, ...]] = {
         PicoBinaryDescription(
             key="clean_mode",
             name="Reinigung",
+            entity_registry_enabled_default=False,
             value_fn=_bool("clean_mode"),
         ),
         PicoBinaryDescription(

@@ -34,7 +34,7 @@ DEVICE_NUMBERS: dict[str, tuple[PicoNumberDescription, ...]] = {
         ),
         PicoNumberDescription(
             key="config_diff_on",
-            name="Temperaturdifferenz Ein",
+            name="Differenz Einschalten",
             config_key="diff_on",
             native_min_value=0,
             native_max_value=30,
@@ -44,7 +44,7 @@ DEVICE_NUMBERS: dict[str, tuple[PicoNumberDescription, ...]] = {
         ),
         PicoNumberDescription(
             key="config_diff_off",
-            name="Temperaturdifferenz Aus",
+            name="Differenz Ausschalten",
             config_key="diff_off",
             native_min_value=0,
             native_max_value=30,
@@ -65,7 +65,7 @@ DEVICE_NUMBERS: dict[str, tuple[PicoNumberDescription, ...]] = {
         ),
         PicoNumberDescription(
             key="config_effect_speed",
-            name="Effektgeschwindigkeit Einstellung",
+            name="Effektgeschwindigkeit",
             config_key="effect_speed",
             native_min_value=1,
             native_max_value=20,
@@ -74,7 +74,7 @@ DEVICE_NUMBERS: dict[str, tuple[PicoNumberDescription, ...]] = {
         ),
         PicoNumberDescription(
             key="config_effect_intensity",
-            name="Effektintensität Einstellung",
+            name="Effektintensität",
             config_key="effect_intensity",
             native_min_value=0,
             native_max_value=1,
@@ -83,7 +83,7 @@ DEVICE_NUMBERS: dict[str, tuple[PicoNumberDescription, ...]] = {
         ),
         PicoNumberDescription(
             key="config_two_color_split",
-            name="Zweifarben-Aufteilung Einstellung",
+            name="Zweifarben-Aufteilung",
             config_key="two_color_split",
             native_min_value=0,
             native_max_value=1,
@@ -92,7 +92,7 @@ DEVICE_NUMBERS: dict[str, tuple[PicoNumberDescription, ...]] = {
         ),
         PicoNumberDescription(
             key="config_elevator_speed",
-            name="Aufzug-Geschwindigkeit Einstellung",
+            name="Aufzug-Geschwindigkeit",
             config_key="elevator_speed",
             native_min_value=1,
             native_max_value=20,
@@ -130,7 +130,7 @@ DEVICE_NUMBERS: dict[str, tuple[PicoNumberDescription, ...]] = {
     "sun_wind_monitor": (
         PicoNumberDescription(
             key="config_max_wind",
-            name="Wind-Grenzwert",
+            name="Windgrenzwert",
             config_key="max_wind",
             native_min_value=0,
             native_max_value=500,
@@ -139,7 +139,7 @@ DEVICE_NUMBERS: dict[str, tuple[PicoNumberDescription, ...]] = {
         ),
         PicoNumberDescription(
             key="config_max_boe",
-            name="Böen-Zähler Grenzwert",
+            name="Böen-Grenzwert",
             config_key="max_boe",
             native_min_value=0,
             native_max_value=100,
@@ -148,7 +148,7 @@ DEVICE_NUMBERS: dict[str, tuple[PicoNumberDescription, ...]] = {
         ),
         PicoNumberDescription(
             key="config_max_hell",
-            name="Helligkeits-Grenzwert",
+            name="Helligkeitsgrenzwert",
             config_key="max_hell",
             native_min_value=0,
             native_max_value=1000000,

@@ -52,7 +52,7 @@ class LedScheduleTime(PicoRestEntity, TimeEntity):
         super().__init__(coordinator, f"schedule_control_{day_key}_{field}_time")
         self._day_key = day_key
         self._field = field
-        label = "Einschaltzeit Einstellung" if field == "on" else "Ausschaltzeit Einstellung"
+        label = "Einschaltzeit" if field == "on" else "Ausschaltzeit"
         self._attr_name = f"{day_name} {label}"
 
     @property
