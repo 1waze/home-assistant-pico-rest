@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2
+
+- Add native RGB color controls for every LED weekday schedule.
+- Add native RGB controls for the global `color1` and `color2` values used by the `two_color` effect.
+- Keep the existing schedule entity unique IDs unchanged; the new color entities are additive.
+
 ## 0.4.1
 
 - UX cleanup for the automatic Home Assistant device pages.

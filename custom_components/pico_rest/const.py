@@ -8,7 +8,16 @@ CONF_PORT = "port"
 DEFAULT_PORT = 80
 API_VERSION = 1
 
-PLATFORMS = ["sensor", "binary_sensor", "switch", "number", "select", "time", "button"]
+PLATFORMS = [
+    "sensor",
+    "binary_sensor",
+    "switch",
+    "number",
+    "select",
+    "time",
+    "light",
+    "button",
+]
 
 DEFAULT_SCAN_INTERVALS = {
     "elevator_monitor": timedelta(seconds=2),

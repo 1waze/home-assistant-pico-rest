@@ -12,10 +12,10 @@ Custom Integration für Geräte mit **Pico REST API v1**.
 
 ## Aktueller Stand
 
-**Release:** v0.4.1
+**Release:** v0.4.2  
 
-v0.4.1 bereinigt die Geräteansicht, reduziert redundante Diagnose- und
-Status-Entities und vereinheitlicht die Bezeichnungen der Bedienelemente.
+v0.4.2 ergänzt die LED-Wochensteuerung um native RGB-Farbwähler für jeden
+Wochentag sowie für die beiden globalen Farben des `two_color`-Effekts.
 
 ### Poolsteuerung
 
@@ -37,7 +37,8 @@ Status-Entities und vereinheitlicht die Bezeichnungen der Bedienelemente.
 - Standard-Effekt
 - Aufzug-Effekt und Aufzug-Geschwindigkeit
 - Aufzug-Verzögerung und Aufzug-Abfrageintervall
-- Montag bis Sonntag: Ein-/Ausschaltzeit und Effekt
+- Montag bis Sonntag: Ein-/Ausschaltzeit, Effekt und RGB-Farbe
+- Globale RGB-Farben `Farbe 1` und `Farbe 2` für den `two_color`-Effekt
 
 Die vorhandenen read-only Wochenplan-Sensoren bleiben aus
 Kompatibilitätsgründen erhalten.
