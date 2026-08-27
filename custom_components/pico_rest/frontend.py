@@ -18,6 +18,42 @@ PANEL_URL = "pico-rest-colors"
 STATIC_URL = "/pico_rest_static"
 PANEL_ELEMENT = "pico-rest-color-panel"
 
+LED_GLOBAL_CONFIG_KEYS = (
+    "brightness",
+    "effect",
+    "effect_speed",
+    "effect_intensity",
+    "effect_delay_ms",
+    "color1",
+    "color2",
+    "two_color_split",
+    "use_sunset",
+    "latitude",
+    "longitude",
+    "timezone",
+    "elevator_url",
+    "elevator_effect",
+    "elevator_speed",
+    "elevator_delay_ms",
+    "elevator_poll_seconds",
+    "special_mode",
+    "led_pin",
+    "led_count",
+)
+
+LED_EFFECTS = {
+    "solid",
+    "two_color",
+    "rainbow",
+    "pulse",
+    "theater",
+    "scanner",
+    "sparkle",
+    "matrix",
+    "chevrons",
+}
+LED_ELEVATOR_EFFECTS = {"chevrons", "scanner", "theater"}
+
 
 def _rgb(value: Any) -> list[int]:
     if not isinstance(value, (list, tuple)) or len(value) != 3:
@@ -36,6 +72,65 @@ def _led_entries(hass: HomeAssistant):
         coordinator = runtime.coordinator
         if str(coordinator.info.get("device_type", "")) == "led_controller":
             yield entry, coordinator
+
+
+def _global_config(coordinator) -> dict[str, Any]:
+    config = (coordinator.data or {}).get("_config", {})
+    if not isinstance(config, dict):
+        return {}
+    return {key: config.get(key) for key in LED_GLOBAL_CONFIG_KEYS if key in config}
+
+
+def _validated_global_value(key: str, value: Any) -> Any:
+    if key in {"use_sunset", "special_mode"}:
+        if not isinstance(value, bool):
+            raise ValueError(f"{key} must be boolean")
+        return value
+
+    if key in {"effect", "elevator_effect", "timezone", "elevator_url"}:
+        if not isinstance(value, str):
+            raise ValueError(f"{key} must be a string")
+        value = value.strip()
+        if key == "effect" and value not in LED_EFFECTS:
+            raise ValueError("unsupported effect")
+        if key == "elevator_effect" and value not in LED_ELEVATOR_EFFECTS:
+            raise ValueError("unsupported elevator effect")
+        if key in {"timezone", "elevator_url"} and not value:
+            raise ValueError(f"{key} must not be empty")
+        return value
+
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError) as err:
+        raise ValueError(f"{key} must be numeric") from err
+
+    ranges: dict[str, tuple[float, float]] = {
+        "brightness": (0.0, 1.0),
+        "effect_speed": (1.0, 20.0),
+        "effect_intensity": (0.0, 1.0),
+        "effect_delay_ms": (0.0, 1000.0),
+        "two_color_split": (0.0, 1.0),
+        "latitude": (-90.0, 90.0),
+        "longitude": (-180.0, 180.0),
+        "elevator_speed": (1.0, 20.0),
+        "elevator_delay_ms": (0.0, 1000.0),
+        "elevator_poll_seconds": (0.2, 60.0),
+        "led_pin": (0.0, 29.0),
+        "led_count": (1.0, 5000.0),
+    }
+    low, high = ranges[key]
+    if not low <= numeric <= high:
+        raise ValueError(f"{key} must be between {low:g} and {high:g}")
+    if key in {
+        "effect_speed",
+        "effect_delay_ms",
+        "elevator_speed",
+        "elevator_delay_ms",
+        "led_pin",
+        "led_count",
+    }:
+        return int(round(numeric))
+    return numeric
 
 
 @websocket_api.websocket_command({vol.Required("type"): "pico_rest/led_colors"})
@@ -65,6 +160,8 @@ async def ws_led_colors(
                 ),
                 "available": coordinator.last_update_success,
                 "colors": colors,
+                "config": _global_config(coordinator),
+                "elevator_state": coordinator.data.get("elevator_state"),
                 "days": {
                     day_key: {
                         "on": config_value(coordinator, "days", day_key, "on"),
@@ -129,6 +226,52 @@ async def ws_set_led_color(
 
 @websocket_api.websocket_command(
     {
+        vol.Required("type"): "pico_rest/set_led_config",
+        vol.Required("entry_id"): str,
+        vol.Required("key"): vol.In(LED_GLOBAL_CONFIG_KEYS),
+        vol.Required("value"): vol.Any(bool, int, float, str),
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_set_led_config(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Update one global LED configuration value."""
+    selected = None
+    for entry, coordinator in _led_entries(hass):
+        if entry.entry_id == msg["entry_id"]:
+            selected = coordinator
+            break
+    if selected is None:
+        connection.send_error(msg["id"], "not_found", "LED controller not found")
+        return
+
+    key = msg["key"]
+    if key in {"color1", "color2"}:
+        connection.send_error(
+            msg["id"],
+            "invalid_format",
+            "Use pico_rest/set_led_color for RGB values",
+        )
+        return
+    try:
+        value = _validated_global_value(key, msg["value"])
+        await async_write_config(selected, {key: value})
+    except (ValueError, TypeError) as err:
+        connection.send_error(msg["id"], "invalid_format", str(err))
+        return
+    except Exception as err:
+        connection.send_error(msg["id"], "write_failed", str(err))
+        return
+
+    connection.send_result(msg["id"], {"key": key, "value": value})
+
+
+@websocket_api.websocket_command(
+    {
         vol.Required("type"): "pico_rest/set_led_day",
         vol.Required("entry_id"): str,
         vol.Required("day"): vol.In([day for day, _name in WEEKDAYS]),
@@ -181,13 +324,14 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
     """Register Pico REST color panel and websocket commands."""
     websocket_api.async_register_command(hass, ws_led_colors)
     websocket_api.async_register_command(hass, ws_set_led_color)
+    websocket_api.async_register_command(hass, ws_set_led_config)
     websocket_api.async_register_command(hass, ws_set_led_day)
 
     frontend_dir = Path(__file__).parent / "frontend"
     await hass.http.async_register_static_paths(
         [StaticPathConfig(STATIC_URL, str(frontend_dir), False)]
     )
-    add_extra_js_url(hass, f"{STATIC_URL}/pico-rest-day-card.js?v=0437")
+    add_extra_js_url(hass, f"{STATIC_URL}/pico-rest-day-card.js?v=0441")
 
     if not async_panel_exists(hass, PANEL_URL):
         await panel_custom.async_register_panel(

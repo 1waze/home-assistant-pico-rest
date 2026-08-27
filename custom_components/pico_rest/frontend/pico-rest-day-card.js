@@ -544,13 +544,8 @@ if (!customElements.get("pico-rest-day-card")) {
 
 
 class PicoRestLedConfigCard extends HTMLElement {
-  connectedCallback() {
-    this.startRefreshTimer();
-  }
-
-  disconnectedCallback() {
-    this.stopRefreshTimer();
-  }
+  connectedCallback() { this.startRefreshTimer(); }
+  disconnectedCallback() { this.stopRefreshTimer(); }
 
   setConfig(config) {
     this.config = { ...config };
@@ -564,15 +559,10 @@ class PicoRestLedConfigCard extends HTMLElement {
     if (this.config && !this._loaded) this.load();
   }
 
-  getCardSize() {
-    return 3;
-  }
+  getCardSize() { return 8; }
 
   getGridOptions() {
-    return {
-      columns: 18,
-      min_columns: 6,
-    };
+    return { columns: 18, min_columns: 12 };
   }
 
   startRefreshTimer() {
@@ -587,29 +577,23 @@ class PicoRestLedConfigCard extends HTMLElement {
   }
 
   selectDevice(devices) {
-    if (this.config?.entry_id) {
-      return devices.find((item) => item.entry_id === this.config.entry_id);
-    }
-    if (this.config?.device_name) {
-      return devices.find((item) => item.name === this.config.device_name);
-    }
+    if (this.config?.entry_id) return devices.find((item) => item.entry_id === this.config.entry_id);
+    if (this.config?.device_name) return devices.find((item) => item.name === this.config.device_name);
     if (devices.length === 1) return devices[0];
-    if (devices.length > 1) {
-      throw new Error(
-        "Mehrere LED-Controller gefunden: entry_id oder device_name in der Karte angeben.",
-      );
-    }
+    if (devices.length > 1) throw new Error("Mehrere LED-Controller gefunden: entry_id oder device_name angeben.");
     return undefined;
   }
 
   applyDeviceData(device, forceRender = true) {
+    const nextConfig = { ...(device.config || {}) };
     const nextColors = { ...(device.colors || {}) };
-    const changed =
-      !this._device ||
-      this._device.available !== device.available ||
+    const changed = !this._device || this._device.available !== device.available ||
+      this._elevatorState !== device.elevator_state ||
+      JSON.stringify(this._global || {}) !== JSON.stringify(nextConfig) ||
       JSON.stringify(this._colors || {}) !== JSON.stringify(nextColors);
-
     this._device = device;
+    this._elevatorState = device.elevator_state;
+    this._global = nextConfig;
     this._colors = nextColors;
     if (forceRender && changed) this.render();
   }
@@ -622,10 +606,8 @@ class PicoRestLedConfigCard extends HTMLElement {
       const device = this.selectDevice(devices);
       if (device) this.applyDeviceData(device, true);
     } catch (_error) {
-      // Keep the last valid card state during temporary refresh errors.
-    } finally {
-      this._refreshing = false;
-    }
+      // Keep last valid state.
+    } finally { this._refreshing = false; }
   }
 
   async load() {
@@ -637,97 +619,208 @@ class PicoRestLedConfigCard extends HTMLElement {
       const device = this.selectDevice(devices);
       if (!device) throw new Error("Keine passende Pico REST LED-Steuerung gefunden.");
       this.applyDeviceData(device, false);
-    } catch (error) {
-      this._error = String(error);
-    }
+    } catch (error) { this._error = String(error); }
     this.render();
   }
 
+  val(key, fallback = "") {
+    const value = this._global?.[key];
+    return value === undefined || value === null ? fallback : value;
+  }
+
+  elevatorStatusHtml() {
+    const raw = String(this._elevatorState ?? "unknown").toLowerCase();
+    const states = {
+      up: ["↑", "Aufwärtsfahrt", "#2e7d32"],
+      down: ["↓", "Abwärtsfahrt", "#1565c0"],
+      stopped: ["■", "Steht", "var(--secondary-text-color)"],
+      stop: ["■", "Steht", "var(--secondary-text-color)"],
+      idle: ["■", "Steht", "var(--secondary-text-color)"],
+    };
+    const [icon, label, color] = states[raw] || ["?", this._elevatorState ?? "Unbekannt", "var(--secondary-text-color)"];
+    return `<div class="elevator-state" title="Aufzugstatus: ${label}">
+      <span class="elevator-icon" style="color:${color}">${icon}</span>
+      <span><small>Aktueller Status</small><strong>${label}</strong></span>
+    </div>`;
+  }
+
   render() {
-    const title = this.config?.title || "Globale LED-Farben";
+    const title = this.config?.title || "Globale LED-Konfiguration";
     if (this._error) {
       this.innerHTML = `<ha-card><div style="padding:12px"><b>${title}</b><p>${this._error}</p></div></ha-card>`;
       return;
     }
-    if (!this._colors) {
+    if (!this._global || !this._colors) {
       this.innerHTML = `<ha-card><div style="padding:12px">${title}: Lade…</div></ha-card>`;
       return;
     }
-
     const offline = !this._device.available;
+    const disabled = offline ? "disabled" : "";
+    const effects = PICO_EFFECTS;
+    const elevatorEffects = ["chevrons", "scanner", "theater"];
+
     this.innerHTML = `
       <ha-card>
         <style>
-          .wrap { padding: 12px; ${offline ? "opacity:.55" : ""} }
-          h2 { font-size:17px; line-height:1.2; margin:0 0 4px; }
-          .hint { font-size:10px; color:var(--secondary-text-color); margin:0 0 8px; }
-          .offline { font-size:11px; color:var(--secondary-text-color); margin:0 0 6px; }
-          .wheels { display:grid; grid-template-columns:1fr 1fr; gap:12px; max-width:340px; }
-          .wheel-box { min-width:0; }
-          .label { text-align:center; margin-bottom:2px; font-size:11px; font-weight:500; }
-          .status { min-height:14px; margin-top:5px; font-size:11px; color:var(--secondary-text-color); }
-          @media (max-width:390px) {
-            .wheels { gap:6px; }
-          }
+          .wrap { padding:14px; ${offline ? "opacity:.55" : ""} }
+          h2 { font-size:18px; margin:0 0 10px; }
+          h3 { font-size:14px; margin:0 0 8px; }
+          .offline,.hint,.status { color:var(--secondary-text-color); font-size:11px; }
+          .groups { display:grid; grid-template-columns:repeat(2,minmax(280px,1fr)); gap:12px; }
+          .group { border:1px solid var(--divider-color); border-radius:10px; padding:10px; min-width:0; }
+          .fields { display:grid; grid-template-columns:repeat(2,minmax(120px,1fr)); gap:8px; }
+          .field { display:flex; flex-direction:column; gap:3px; min-width:0; font-size:11px; color:var(--secondary-text-color); }
+          .field.full { grid-column:1 / -1; }
+          select,input[type="number"],input[type="text"] { box-sizing:border-box; width:100%; min-height:34px; border:1px solid var(--divider-color); border-radius:7px; padding:6px 7px; background:var(--card-background-color); color:var(--primary-text-color); font:inherit; font-size:13px; }
+          input[type="range"] { width:100%; }
+          .toggle { display:flex; align-items:center; gap:8px; min-height:34px; color:var(--primary-text-color); font-size:13px; }
+          .wheels { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+          .wheel-box { min-width:0; text-align:center; }
+          .wheel-label { margin-bottom:3px; font-size:11px; font-weight:500; }
+          .status { min-height:16px; margin-top:8px; }
+          .elevator-state { display:flex; align-items:center; gap:9px; margin:0 0 10px; padding:7px 9px; border:1px solid var(--divider-color); border-radius:8px; background:var(--secondary-background-color); }
+          .elevator-icon { font-size:26px; line-height:1; width:26px; text-align:center; font-weight:700; }
+          .elevator-state span:last-child { display:flex; flex-direction:column; line-height:1.2; }
+          .elevator-state small { color:var(--secondary-text-color); font-size:10px; }
+          .elevator-state strong { color:var(--primary-text-color); font-size:13px; }
+          details summary { cursor:pointer; font-size:14px; font-weight:600; margin-bottom:8px; }
+          @media (max-width:760px) { .groups { grid-template-columns:1fr; } }
+          @media (max-width:430px) { .fields { grid-template-columns:1fr; } .wheels { grid-template-columns:1fr 1fr; } }
         </style>
         <div class="wrap">
           <h2>${title}</h2>
-          <div class="hint">Globale Farben für den Effekt two_color</div>
           ${offline ? '<div class="offline">Nicht verfügbar</div>' : ""}
-          <div class="wheels">
-            <div class="wheel-box">
-              <div class="label">Farbe 1</div>
-              <pico-rest-day-wheel compact data-target="color1"></pico-rest-day-wheel>
-            </div>
-            <div class="wheel-box">
-              <div class="label">Farbe 2</div>
-              <pico-rest-day-wheel compact data-target="color2"></pico-rest-day-wheel>
-            </div>
+          <div class="groups">
+            <section class="group">
+              <h3>LED & Effekte</h3>
+              <div class="fields">
+                ${this.rangeField("brightness","Helligkeit",0,1,0.01)}
+                ${this.selectField("effect","Standard-Effekt",effects)}
+                ${this.numberField("effect_speed","Effektgeschwindigkeit",1,20,1)}
+                ${this.numberField("effect_intensity","Effektintensität",0,1,0.05)}
+                ${this.numberField("effect_delay_ms","Effekt-Verzögerung (ms)",0,1000,1)}
+                ${this.rangeField("two_color_split","Zweifarben-Aufteilung",0,1,0.01)}
+              </div>
+            </section>
+
+            <section class="group">
+              <h3>Two Color</h3>
+              <div class="wheels">
+                <div class="wheel-box"><div class="wheel-label">Farbe 1</div><pico-rest-day-wheel compact data-target="color1"></pico-rest-day-wheel></div>
+                <div class="wheel-box"><div class="wheel-label">Farbe 2</div><pico-rest-day-wheel compact data-target="color2"></pico-rest-day-wheel></div>
+              </div>
+            </section>
+
+            <section class="group">
+              <h3>Standort & Sonnenuntergang</h3>
+              <div class="fields">
+                ${this.checkboxField("use_sunset","Sonnenuntergang verwenden")}
+                ${this.numberField("latitude","Breitengrad",-90,90,0.0001)}
+                ${this.numberField("longitude","Längengrad",-180,180,0.0001)}
+                ${this.textField("timezone","Zeitzone")}
+              </div>
+            </section>
+
+            <section class="group">
+              <h3>Aufzug</h3>
+              ${this.elevatorStatusHtml()}
+              <div class="fields">
+                ${this.textField("elevator_url","Aufzug-URL",true)}
+                ${this.selectField("elevator_effect","Aufzug-Effekt",elevatorEffects)}
+                ${this.numberField("elevator_speed","Aufzug-Geschwindigkeit",1,20,1)}
+                ${this.numberField("elevator_delay_ms","Aufzug-Verzögerung (ms)",0,1000,1)}
+                ${this.numberField("elevator_poll_seconds","Abfrageintervall (s)",0.2,60,0.2)}
+              </div>
+            </section>
+
+            <section class="group" style="grid-column:1/-1">
+              <details>
+                <summary>Erweiterte Hardware-/Legacy-Einstellungen</summary>
+                <div class="fields">
+                  ${this.numberField("led_pin","LED GPIO",0,29,1)}
+                  ${this.numberField("led_count","LED-Anzahl",1,5000,1)}
+                  ${this.checkboxField("special_mode","Special Mode (Legacy)")}
+                </div>
+              </details>
+            </section>
           </div>
           <div class="status"></div>
         </div>
-      </ha-card>
-    `;
+      </ha-card>`;
 
     for (const target of ["color1", "color2"]) {
       const wheel = this.querySelector(`pico-rest-day-wheel[data-target="${target}"]`);
-      wheel.value = this._colors[target] || [255, 255, 255];
-      if (!offline) {
-        wheel.addEventListener("color-change", (event) => {
-          this.saveColor(target, event.detail, true);
-        });
-      }
+      wheel.value = this._colors[target] || [255,255,255];
+      if (!offline) wheel.addEventListener("color-change", (event) => this.saveColor(target,event.detail,true));
     }
+    this.querySelectorAll("[data-config-key]").forEach((el) => {
+      const key = el.dataset.configKey;
+      const handler = () => {
+        let value;
+        if (el.type === "checkbox") value = el.checked;
+        else if (el.type === "number" || el.type === "range") value = Number(el.value);
+        else value = el.value;
+        this.saveConfig(key,value);
+      };
+      el.addEventListener(el.type === "range" ? "change" : "change", handler);
+    });
   }
 
-  async saveColor(target, rgb, debounce = false) {
+  numberField(key,label,min,max,step) {
+    return `<label class="field"><span>${label}</span><input data-config-key="${key}" type="number" min="${min}" max="${max}" step="${step}" value="${this.val(key)}" ${!this._device?.available ? "disabled" : ""}></label>`;
+  }
+
+  rangeField(key,label,min,max,step) {
+    return `<label class="field"><span>${label}: ${this.val(key)}</span><input data-config-key="${key}" type="range" min="${min}" max="${max}" step="${step}" value="${this.val(key)}" ${!this._device?.available ? "disabled" : ""}></label>`;
+  }
+
+  textField(key,label,full=false) {
+    return `<label class="field ${full ? "full" : ""}"><span>${label}</span><input data-config-key="${key}" type="text" value="${String(this.val(key)).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;')}" ${!this._device?.available ? "disabled" : ""}></label>`;
+  }
+
+  checkboxField(key,label) {
+    return `<label class="field"><span>${label}</span><span class="toggle"><input data-config-key="${key}" type="checkbox" ${this.val(key,false) ? "checked" : ""} ${!this._device?.available ? "disabled" : ""}>${this.val(key,false) ? "Ein" : "Aus"}</span></label>`;
+  }
+
+  selectField(key,label,options) {
+    const current=String(this.val(key));
+    return `<label class="field"><span>${label}</span><select data-config-key="${key}" ${!this._device?.available ? "disabled" : ""}>${options.map((v)=>`<option value="${v}" ${v===current?"selected":""}>${v}</option>`).join("")}</select></label>`;
+  }
+
+  async saveConfig(key,value) {
     if (!this._device?.available) return;
-    this._colors = { ...(this._colors || {}), [target]: [...rgb] };
+    const status=this.querySelector('.status');
+    if (status) status.textContent='Speichere…';
+    this._saving=true;
+    try {
+      await this._hass.callWS({type:'pico_rest/set_led_config',entry_id:this._device.entry_id,key,value});
+      this._global={...(this._global||{}),[key]:value};
+      if (status) status.textContent='Gespeichert';
+      setTimeout(()=>this.refreshFromBackend(),250);
+    } catch(error) { if(status) status.textContent=`Fehler: ${error}`; }
+    finally { this._saving=false; }
+  }
+
+  async saveColor(target,rgb,debounce=false) {
+    if (!this._device?.available) return;
+    this._colors={...(this._colors||{}),[target]:[...rgb]};
     if (debounce) {
       clearTimeout(this[`_${target}Timer`]);
-      this[`_${target}Timer`] = setTimeout(() => this.saveColorNow(target, rgb), 350);
+      this[`_${target}Timer`]=setTimeout(()=>this.saveColorNow(target,rgb),350);
       return;
     }
-    await this.saveColorNow(target, rgb);
+    await this.saveColorNow(target,rgb);
   }
 
-  async saveColorNow(target, rgb) {
-    const status = this.querySelector(".status");
-    if (status) status.textContent = "Speichere…";
-    this._saving = true;
+  async saveColorNow(target,rgb) {
+    const status=this.querySelector('.status');
+    if(status) status.textContent='Speichere…';
+    this._saving=true;
     try {
-      await this._hass.callWS({
-        type: "pico_rest/set_led_color",
-        entry_id: this._device.entry_id,
-        target,
-        rgb: [...rgb],
-      });
-      if (status) status.textContent = "Gespeichert";
-    } catch (error) {
-      if (status) status.textContent = `Fehler: ${error}`;
-    } finally {
-      this._saving = false;
-    }
+      await this._hass.callWS({type:'pico_rest/set_led_color',entry_id:this._device.entry_id,target,rgb:[...rgb]});
+      if(status) status.textContent='Gespeichert';
+    } catch(error) { if(status) status.textContent=`Fehler: ${error}`; }
+    finally { this._saving=false; }
   }
 }
 
@@ -751,7 +844,7 @@ if (!window.customCards.some((card) => card.type === "pico-rest-led-config-card"
   window.customCards.push({
     type: "pico-rest-led-config-card",
     name: "Pico REST globale LED-Konfiguration",
-    description: "Globale RGB-Farben 1 und 2 für den Pico-LED-Effekt two_color.",
+    description: "Alle globalen Pico-LED-Konfigurationswerte inklusive RGB-Farben, Standort und Aufzug.",
     preview: false,
     documentationURL: "https://github.com/1waze/home-assistant-pico-rest",
   });

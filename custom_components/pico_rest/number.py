@@ -126,6 +126,26 @@ DEVICE_NUMBERS: dict[str, tuple[PicoNumberDescription, ...]] = {
             native_step=0.2,
             mode=NumberMode.BOX,
         ),
+        PicoNumberDescription(
+            key="config_latitude",
+            name="Breitengrad",
+            config_key="latitude",
+            native_min_value=-90,
+            native_max_value=90,
+            native_step=0.0001,
+            native_unit_of_measurement="°",
+            mode=NumberMode.BOX,
+        ),
+        PicoNumberDescription(
+            key="config_longitude",
+            name="Längengrad",
+            config_key="longitude",
+            native_min_value=-180,
+            native_max_value=180,
+            native_step=0.0001,
+            native_unit_of_measurement="°",
+            mode=NumberMode.BOX,
+        ),
     ),
     "sun_wind_monitor": (
         PicoNumberDescription(

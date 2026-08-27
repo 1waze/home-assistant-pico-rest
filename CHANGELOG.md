@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.4
+
+- Extend `custom:pico-rest-led-config-card` to a complete global LED configuration card.
+- Add controls for brightness, standard effect, effect speed/intensity/delay and two-color split.
+- Keep global `color1` / `color2` RGB wheels in the same card.
+- Add sunset/location controls for `use_sunset`, latitude, longitude and timezone.
+- Add elevator URL/effect/speed/delay/poll controls.
+- Add advanced controls for LED GPIO, LED count and legacy special mode.
+- Add latitude/longitude as writable Home Assistant number entities.
+- Preserve the final v0.4.3 Sections sizing: weekday cards 9 columns, global card 18 columns.
+
 ## 0.4.3
 
 - Custom weekday cards now advertise 6-column Sections grid sizing; the global LED color card uses 12 columns.
