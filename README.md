@@ -12,8 +12,7 @@ Custom Integration für Geräte mit **Pico REST API v1**.
 
 ## Aktueller Stand
 
-**Release:** v0.4.3  
-**Entwicklung:** v0.4.4
+**Release:** v0.4.4  
 
 v0.4.4 erweitert die globale Pico-LED-Konfigurationskarte um alle nicht wochentagsbezogenen Einstellungen. Die Wochentagskarten aus v0.4.3 bleiben unverändert.
 
