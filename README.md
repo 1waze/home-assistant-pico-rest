@@ -12,8 +12,7 @@ Custom Integration für Geräte mit **Pico REST API v1**.
 
 ## Aktueller Stand
 
-**Release:** v0.4.2  
-**Entwicklung:** v0.4.3
+**Release:** v0.4.3  
 
 v0.4.3 ergänzt eine kompakte Lovelace-Wochentagskarte. v0.4.2 brachte die eigene Home-Assistant-Farbsteuerung mit echtem RGB-Farbrad für
 jeden Wochentag sowie für die beiden globalen Farben des `two_color`-Effekts.
