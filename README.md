@@ -14,8 +14,8 @@ Custom Integration für Geräte mit **Pico REST API v1**.
 
 **Release:** v0.4.2  
 
-v0.4.2 ergänzt die LED-Wochensteuerung um native RGB-Farbwähler für jeden
-Wochentag sowie für die beiden globalen Farben des `two_color`-Effekts.
+v0.4.2 ergänzt eine eigene Home-Assistant-Farbsteuerung mit echtem RGB-Farbrad für
+jeden Wochentag sowie für die beiden globalen Farben des `two_color`-Effekts.
 
 ### Poolsteuerung
 
@@ -37,8 +37,9 @@ Wochentag sowie für die beiden globalen Farben des `two_color`-Effekts.
 - Standard-Effekt
 - Aufzug-Effekt und Aufzug-Geschwindigkeit
 - Aufzug-Verzögerung und Aufzug-Abfrageintervall
-- Montag bis Sonntag: Ein-/Ausschaltzeit, Effekt und RGB-Farbe
-- Globale RGB-Farben `Farbe 1` und `Farbe 2` für den `two_color`-Effekt
+- Montag bis Sonntag: Ein-/Ausschaltzeit und Effekt als Entities
+- Eigenes Panel **Pico REST Farben** mit freiem RGB-Farbrad für alle Wochentagsfarben
+- Freie RGB-Farbräder für `Farbe 1` und `Farbe 2` des `two_color`-Effekts
 
 Die vorhandenen read-only Wochenplan-Sensoren bleiben aus
 Kompatibilitätsgründen erhalten.

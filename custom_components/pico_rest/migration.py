@@ -119,3 +119,36 @@ def apply_v041_entity_cleanup(
         options={**entry.options, UX_CLEANUP_OPTION: True},
     )
 
+
+COLOR_ENTITY_CLEANUP_OPTION = "_color_entity_cleanup_v042"
+
+
+def apply_v042_color_entity_cleanup(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    device_type: str,
+    device_id: str,
+) -> None:
+    """Remove the short-lived v0.4.2 light entities used as color editors."""
+    if device_type != "led_controller" or entry.options.get(COLOR_ENTITY_CLEANUP_OPTION):
+        return
+
+    registry = er.async_get(hass)
+    keys = {"config_color1_color", "config_color2_color"}
+    keys.update(f"schedule_control_{day}_color" for day in range(7))
+    prefix = f"{device_id}:"
+
+    for registry_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+        unique_id = registry_entry.unique_id
+        if not unique_id.startswith(prefix):
+            continue
+        if unique_id[len(prefix) :] in keys:
+            registry.async_remove(registry_entry.entity_id)
+            _LOGGER.debug(
+                "Removed obsolete Pico REST color light %s", registry_entry.entity_id
+            )
+
+    hass.config_entries.async_update_entry(
+        entry,
+        options={**entry.options, COLOR_ENTITY_CLEANUP_OPTION: True},
+    )

@@ -17,7 +17,12 @@ from .api import (
 )
 from .const import DEFAULT_PORT, PLATFORMS, SUPPORTED_DEVICE_TYPES
 from .coordinator import PicoRestCoordinator
-from .migration import apply_v041_entity_cleanup, migrate_entry_identity
+from .frontend import async_register_frontend
+from .migration import (
+    apply_v041_entity_cleanup,
+    apply_v042_color_entity_cleanup,
+    migrate_entry_identity,
+)
 
 
 @dataclass
@@ -29,6 +34,12 @@ class PicoRestRuntimeData:
 
 
 type PicoRestConfigEntry = ConfigEntry[PicoRestRuntimeData]
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up Pico REST frontend support."""
+    await async_register_frontend(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: PicoRestConfigEntry) -> bool:
@@ -54,6 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PicoRestConfigEntry) -> 
     device_id = str(info["device_id"])
     migrate_entry_identity(hass, entry, device_type, device_id)
     apply_v041_entity_cleanup(hass, entry, device_type, device_id)
+    apply_v042_color_entity_cleanup(hass, entry, device_type, device_id)
 
     coordinator = PicoRestCoordinator(hass, entry, client, info)
     await coordinator.async_config_entry_first_refresh()

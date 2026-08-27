@@ -15,7 +15,6 @@ PLATFORMS = [
     "number",
     "select",
     "time",
-    "light",
     "button",
 ]
 
