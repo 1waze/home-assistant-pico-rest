@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.components import panel_custom, websocket_api
 from homeassistant.components.frontend import async_panel_exists
 from homeassistant.components.http import StaticPathConfig
@@ -54,7 +53,7 @@ async def ws_led_colors(
             "color1": _rgb(config_value(coordinator, "color1")),
             "color2": _rgb(config_value(coordinator, "color2")),
         }
-        for day_key, day_name in WEEKDAYS:
+        for day_key, _ in WEEKDAYS:
             colors[f"day_{day_key}"] = _rgb(
                 config_value(coordinator, "days", day_key, "color")
             )

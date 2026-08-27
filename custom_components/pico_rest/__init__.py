@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import (
@@ -15,7 +16,7 @@ from .api import (
     PicoRestConnectionError,
     PicoRestInvalidResponse,
 )
-from .const import DEFAULT_PORT, PLATFORMS, SUPPORTED_DEVICE_TYPES
+from .const import DEFAULT_PORT, DOMAIN, PLATFORMS, SUPPORTED_DEVICE_TYPES
 from .coordinator import PicoRestCoordinator
 from .frontend import async_register_frontend
 from .migration import (
@@ -24,6 +25,7 @@ from .migration import (
     migrate_entry_identity,
 )
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 @dataclass
 class PicoRestRuntimeData:
