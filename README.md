@@ -13,8 +13,9 @@ Custom Integration für Geräte mit **Pico REST API v1**.
 ## Aktueller Stand
 
 **Release:** v0.4.2  
+**Entwicklung:** v0.4.3
 
-v0.4.2 ergänzt eine eigene Home-Assistant-Farbsteuerung mit echtem RGB-Farbrad für
+v0.4.3 ergänzt eine kompakte Lovelace-Wochentagskarte. v0.4.2 brachte die eigene Home-Assistant-Farbsteuerung mit echtem RGB-Farbrad für
 jeden Wochentag sowie für die beiden globalen Farben des `two_color`-Effekts.
 
 ### Poolsteuerung
@@ -92,3 +93,32 @@ Git-Tag im Format `vX.Y.Z` verwendet.
 
 Siehe auch [CHANGELOG.md](CHANGELOG.md) und
 [docs/pico-rest-api-v1.md](docs/pico-rest-api-v1.md).
+
+
+## Lovelace-Wochentagskarte (v0.4.3)
+
+Die Integration liefert die Karte `custom:pico-rest-day-card` automatisch mit.
+Sie kombiniert Farbe, Effekt, Einschaltzeit und Ausschaltzeit eines LED-Wochentags.
+Die Karte aktualisiert sich automatisch bei externen Konfigurationsänderungen. Beim Effekt `two_color` wird das Tages-Farbrad vollständig ausgeblendet, da hierfür die beiden globalen Farben `Farbe 1` und `Farbe 2` verwendet werden.
+
+Für diese beiden globalen Farben liefert v0.4.3 zusätzlich die Karte `custom:pico-rest-led-config-card`. Sie wird genau einmal im Dashboard platziert und steuert `color1` und `color2` unabhängig vom Wochentag.
+
+Wenn genau eine Pico-REST-LED-Steuerung eingerichtet ist, genügt:
+
+```yaml
+type: custom:pico-rest-day-card
+day: 1
+title: Dienstag
+```
+
+Die globale `two_color`-Konfiguration wird einmalig mit folgender Karte eingebunden:
+
+```yaml
+type: custom:pico-rest-led-config-card
+
+Die Wochentagskarten belegen in Sections-Dashboards standardmäßig 6 von 12 Spalten; die globale LED-Farbkarte 12 von 12.
+title: Globale LED-Farben
+```
+
+`day` verwendet `0` = Montag bis `6` = Sonntag. Bei mehreren LED-Controllern kann
+bei beiden Kartentypen zusätzlich `device_name` oder `entry_id` angegeben werden.

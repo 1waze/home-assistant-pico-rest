@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.3
+
+- Custom weekday cards now advertise 6-column Sections grid sizing; the global LED color card uses 12 columns.
+
+- `two_color`-Tageskarten blenden das ungenutzte Tages-Farbrad nun komplett aus.
+- Tageskarten sind schmaler und nutzen den verfügbaren Platz besser.
+- Die globale LED-Farbkarte bleibt die einzige Stelle für `color1` und `color2`.
+
+- Add `custom:pico-rest-day-card` for compact LED weekday control in Lovelace dashboards.
+- Combine RGB color wheel, effect, switch-on time and switch-off time in one card.
+- Save changed weekday values directly through the Pico REST integration.
+- Ship and load the dashboard card automatically with the integration; no manual `/config/www` resource is required.
+- Support automatic LED-controller selection when only one controller exists, with optional `entry_id` or `device_name` selection.
+- Refresh weekday data automatically so external Pico config changes appear without reloading the dashboard.
+- Disable the weekday color wheel while the effect is `two_color`, because that effect uses global `color1` and `color2`.
+- Add `custom:pico-rest-led-config-card` as a single global editor for `color1` and `color2`.
+- Keep `two_color` weekday cards free of duplicated global color controls; the weekday wheel is disabled with a reference to the global colors.
 ## 0.4.2
 
 - Add a dedicated Home Assistant RGB color-wheel panel for Pico REST LED controllers.
