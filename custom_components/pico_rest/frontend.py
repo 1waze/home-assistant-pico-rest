@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.components import panel_custom, websocket_api
 from homeassistant.components.frontend import add_extra_js_url, async_panel_exists
 from homeassistant.components.http import StaticPathConfig
