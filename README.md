@@ -13,8 +13,9 @@ Custom Integration für Geräte mit **Pico REST API v1**.
 ## Aktueller Stand
 
 **Release:** v0.4.4  
+**Entwicklung:** v0.5.0
 
-v0.4.4 erweitert die globale Pico-LED-Konfigurationskarte um alle nicht wochentagsbezogenen Einstellungen. Die Wochentagskarten aus v0.4.3 bleiben unverändert.
+v0.5.0 ergänzt die Integration um eine zentrale Pool-Controller-Karte mit Konfiguration, Live-Status, Diagnose und Temperaturverlauf. Die LED-Karten aus v0.4.x bleiben unverändert.
 
 ### Poolsteuerung
 
@@ -126,3 +127,14 @@ die globale LED-Konfigurationskarte 18 Grid-Spalten.
 
 `day` verwendet `0` = Montag bis `6` = Sonntag. Bei mehreren LED-Controllern kann
 bei beiden Kartentypen zusätzlich `device_name` oder `entry_id` angegeben werden.
+
+
+### Pool Controller Card (v0.5.0)
+
+```yaml
+type: custom:pico-rest-pool-card
+title: Poolsteuerung
+hours_to_show: 8
+```
+
+The card combines Pool/collector temperatures, controller configuration, pump/valve state and manual controls, schedules, diagnostics, and an optional Home Assistant history graph.

@@ -849,3 +849,441 @@ if (!window.customCards.some((card) => card.type === "pico-rest-led-config-card"
     documentationURL: "https://github.com/1waze/home-assistant-pico-rest",
   });
 }
+
+class PicoRestPoolCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._loaded = false;
+    this._history = {};
+  }
+
+  connectedCallback() {
+    this.startRefreshTimer();
+    if (this._hass && this.config) this.load();
+  }
+
+  disconnectedCallback() {
+    this.stopRefreshTimer();
+    this.stopHistoryTimer();
+  }
+
+  setConfig(config) {
+    this.config = { hours_to_show: 8, ...config };
+    this._loaded = false;
+    if (this._hass) this.load();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this.startRefreshTimer();
+    if (this.config && !this._loaded) this.load();
+  }
+
+  getCardSize() { return 12; }
+
+  getGridOptions() {
+    return { columns: 18, min_columns: 12 };
+  }
+
+  startRefreshTimer() {
+    if (this._refreshTimer) return;
+    this._refreshTimer = setInterval(() => this.refreshFromBackend(), 5000);
+    this.startHistoryTimer();
+  }
+
+  stopRefreshTimer() {
+    if (!this._refreshTimer) return;
+    clearInterval(this._refreshTimer);
+    this._refreshTimer = undefined;
+  }
+
+  startHistoryTimer() {
+    if (this._historyTimer) return;
+    this._historyTimer = setInterval(() => this.loadHistory(), 60000);
+  }
+
+  stopHistoryTimer() {
+    if (!this._historyTimer) return;
+    clearInterval(this._historyTimer);
+    this._historyTimer = undefined;
+  }
+
+  async load() {
+    if (!this._hass || !this.config) return;
+    try {
+      const devices = await this._hass.callWS({ type: "pico_rest/pool_state" });
+      const device = this.selectDevice(devices);
+      if (!device) throw new Error("Kein Pico REST Pool Controller gefunden");
+      this._device = device;
+      this._loaded = true;
+      this.render();
+      await this.loadHistory();
+    } catch (error) {
+      this.renderError(error);
+    }
+  }
+
+  selectDevice(devices) {
+    if (!Array.isArray(devices) || devices.length === 0) return null;
+    if (this.config.entry_id) {
+      return devices.find((device) => device.entry_id === this.config.entry_id) || null;
+    }
+    if (this.config.device_name) {
+      return devices.find((device) => device.name === this.config.device_name) || null;
+    }
+    return devices[0];
+  }
+
+  async refreshFromBackend() {
+    if (!this._hass || !this.config || this._refreshBusy) return;
+    this._refreshBusy = true;
+    try {
+      const devices = await this._hass.callWS({ type: "pico_rest/pool_state" });
+      const device = this.selectDevice(devices);
+      if (!device) return;
+      const changed = JSON.stringify(device) !== JSON.stringify(this._device);
+      this._device = device;
+      if (changed) this.render();
+    } catch (_error) {
+      // Keep last values visible during a transient error.
+    } finally {
+      this._refreshBusy = false;
+    }
+  }
+
+  async loadHistory() {
+    if (!this._hass || !this._device?.entity_ids) return;
+    const entityIds = [this._device.entity_ids.t_pool, this._device.entity_ids.t_collector].filter(Boolean);
+    if (entityIds.length !== 2) {
+      this._historyError = "Temperatur-Entities nicht gefunden";
+      this.renderGraph();
+      return;
+    }
+    const end = new Date();
+    const start = new Date(end.getTime() - Number(this.config.hours_to_show || 8) * 3600000);
+    try {
+      this._history = await this._hass.callWS({
+        type: "history/history_during_period",
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+        entity_ids: entityIds,
+        include_start_time_state: true,
+        significant_changes_only: false,
+        minimal_response: false,
+        no_attributes: true,
+      });
+      this._historyError = undefined;
+      this.renderGraph();
+    } catch (error) {
+      this._historyError = "Verlauf nicht verfügbar";
+      this.renderGraph();
+    }
+  }
+
+  async write(key, value) {
+    if (!this._device || this._writeBusy) return;
+    this._writeBusy = true;
+    this.setStatus("Speichere …");
+    try {
+      await this._hass.callWS({
+        type: "pico_rest/set_pool_value",
+        entry_id: this._device.entry_id,
+        key,
+        value,
+      });
+      await this.refreshFromBackend();
+      this.setStatus("Gespeichert");
+    } catch (error) {
+      this.setStatus(error?.message || "Schreiben fehlgeschlagen", true);
+    } finally {
+      this._writeBusy = false;
+    }
+  }
+
+  setStatus(text, error = false) {
+    const el = this.shadowRoot?.querySelector(".write-status");
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle("error", error);
+    clearTimeout(this._statusTimer);
+    this._statusTimer = setTimeout(() => {
+      if (el) el.textContent = "";
+    }, 2500);
+  }
+
+  number(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  checked(value) {
+    return value ? "checked" : "";
+  }
+
+  disabled(value) {
+    return value ? "disabled" : "";
+  }
+
+  formatBytes(value) {
+    const bytes = this.number(value);
+    if (bytes < 1024) return `${Math.round(bytes)} B`;
+    return `${Math.round(bytes / 1024)} kB`;
+  }
+
+  formatTime(raw) {
+    if (!Array.isArray(raw) || raw.length < 6) return "–";
+    const [year, month, day, hour, minute, second] = raw;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")} ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:${String(second).padStart(2, "0")}`;
+  }
+
+  tempHtml(label, value, min, max, kind) {
+    const n = this.number(value);
+    const pct = Math.max(0, Math.min(100, ((n - min) / (max - min)) * 100));
+    return `
+      <div class="temp-block ${kind}">
+        <div class="temp-head">
+          <ha-icon icon="mdi:thermometer"></ha-icon>
+          <span class="temp-name">${label}</span>
+          <span class="temp-value">${n.toFixed(1)}°C</span>
+        </div>
+        <div class="temp-bar"><span style="width:${pct}%"></span></div>
+        <div class="temp-scale"><span>${min}</span><span>${max}</span></div>
+      </div>`;
+  }
+
+  actorHtml(key, label, icon) {
+    const data = this._device?.status || {};
+    const mode = String(data.mode || this._device?.config?.mode || "auto").toLowerCase();
+    const manual = mode === "manual";
+    const state = Boolean(data[key]);
+    const manualKey = `manual_${key}`;
+    const manualState = Boolean(data[manualKey]);
+    return `
+      <div class="actor ${state ? "on" : "off"}">
+        <div class="actor-label"><ha-icon icon="${icon}"></ha-icon><span>${label}</span></div>
+        <div class="actor-right">
+          <strong>${state ? "Ein" : "Aus"}</strong>
+          <label class="switch ${manual ? "" : "disabled"}" title="${manual ? "Manuelle Steuerung" : "Nur im manuellen Modus schaltbar"}">
+            <input data-pool-key="${manualKey}" type="checkbox" ${this.checked(manualState)} ${this.disabled(!manual)}>
+            <span></span>
+          </label>
+        </div>
+      </div>`;
+  }
+
+  render() {
+    if (!this._device) return;
+    const data = this._device.status || {};
+    const cfg = this._device.config || {};
+    const mode = String(cfg.mode || data.mode || "auto").toLowerCase();
+    const title = this.config.title || "Pool-Pumpensteuerung";
+    const cpu = this.number(data.t_cpu);
+    const cpuPct = Math.max(0, Math.min(100, cpu));
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host { display:block; }
+        ha-card { padding:14px 16px 16px; overflow:hidden; }
+        h2 { margin:0 0 12px; font-size:22px; }
+        .top { display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+        .temp-block { min-width:0; }
+        .temp-head { display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:6px; }
+        .temp-head ha-icon { --mdc-icon-size:30px; color:var(--primary-text-color); }
+        .temp-name { font-size:19px; }
+        .temp-value { font-size:28px; font-weight:300; }
+        .temp-bar { height:4px; background:var(--divider-color); margin:2px 0 0 40px; overflow:hidden; }
+        .temp-bar span { display:block; height:100%; background:var(--primary-color); }
+        .collector .temp-bar span { background:#f44336; }
+        .temp-scale { display:flex; justify-content:space-between; margin-left:40px; font-size:10px; color:var(--secondary-text-color); }
+        .controls { display:grid; grid-template-columns:1.15fr .85fr; gap:28px; margin-top:16px; }
+        .sliders { display:grid; gap:10px; }
+        .slider-row { display:grid; grid-template-columns:120px 1fr 58px; align-items:center; gap:10px; }
+        .slider-row input[type=range] { width:100%; accent-color:var(--primary-color); }
+        .slider-row input[type=number] { width:100%; box-sizing:border-box; border:1px solid var(--divider-color); background:var(--card-background-color); color:var(--primary-text-color); border-radius:6px; padding:7px 5px; text-align:center; }
+        .right-controls { display:grid; gap:8px; align-content:start; }
+        .toggle-row, .actor { display:flex; align-items:center; justify-content:space-between; min-height:38px; }
+        .actor-label { display:flex; align-items:center; gap:8px; }
+        .actor-label ha-icon { color:var(--secondary-text-color); }
+        .actor.on .actor-label ha-icon { color:var(--primary-color); }
+        .actor-right { display:flex; align-items:center; gap:10px; font-size:12px; }
+        .switch { position:relative; width:38px; height:22px; display:inline-block; }
+        .switch input { opacity:0; width:0; height:0; }
+        .switch span { position:absolute; inset:0; border-radius:22px; background:var(--divider-color); cursor:pointer; transition:.15s; }
+        .switch span::before { content:""; position:absolute; width:18px; height:18px; left:2px; top:2px; border-radius:50%; background:white; transition:.15s; box-shadow:0 1px 2px #0004; }
+        .switch input:checked + span { background:var(--primary-color); }
+        .switch input:checked + span::before { transform:translateX(16px); }
+        .switch.disabled { opacity:.45; }
+        .switch.disabled span { cursor:not-allowed; }
+        .graph-wrap { margin-top:16px; border-top:1px solid var(--divider-color); padding-top:12px; }
+        .graph-title { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; font-size:12px; color:var(--secondary-text-color); }
+        .legend { display:flex; gap:12px; }
+        .legend span::before { content:""; display:inline-block; width:14px; height:3px; margin-right:5px; vertical-align:middle; background:var(--primary-color); }
+        .legend .collector-key::before { background:#f44336; }
+        canvas { display:block; width:100%; height:190px; }
+        .schedule { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+        .field label { display:block; font-size:11px; color:var(--secondary-text-color); margin-bottom:3px; }
+        .field input[type=time] { width:100%; box-sizing:border-box; padding:8px 10px; font-size:16px; border:none; border-bottom:1px solid var(--primary-color); background:transparent; color:var(--primary-text-color); }
+        .diag { display:grid; grid-template-columns:130px 1fr 1fr; gap:18px; margin-top:14px; padding-top:12px; border-top:1px solid var(--divider-color); align-items:center; }
+        .gauge { text-align:center; }
+        .gauge-ring { --p:${cpuPct}; width:76px; height:76px; border-radius:50%; margin:0 auto 4px; display:grid; place-items:center; background:conic-gradient(var(--primary-color) calc(var(--p)*1%), var(--divider-color) 0); position:relative; }
+        .gauge-ring::before { content:""; position:absolute; width:58px; height:58px; border-radius:50%; background:var(--card-background-color); }
+        .gauge-ring strong { position:relative; z-index:1; font-size:13px; }
+        .diag-main, .diag-side { display:grid; gap:9px; font-size:13px; }
+        .diag-row { display:flex; justify-content:space-between; gap:8px; }
+        .diag-row span:first-child { color:var(--secondary-text-color); }
+        .write-status { min-height:16px; margin-top:5px; text-align:right; font-size:11px; color:var(--secondary-text-color); }
+        .write-status.error { color:var(--error-color); }
+        .unavailable { opacity:.5; pointer-events:none; }
+        @media (max-width:700px) {
+          .top, .controls, .diag { grid-template-columns:1fr; gap:14px; }
+          .slider-row { grid-template-columns:105px 1fr 55px; }
+          .diag { grid-template-columns:1fr 1fr; }
+          .gauge { grid-column:1/-1; }
+        }
+        @media (max-width:430px) { .schedule { grid-template-columns:1fr; } }
+      </style>
+      <ha-card class="${this._device.available ? "" : "unavailable"}">
+        <h2>${title}</h2>
+        <div class="top">
+          ${this.tempHtml("Pool", data.t_pool, 0, 40, "pool")}
+          ${this.tempHtml("Absorber", data.t_collector, 20, 80, "collector")}
+        </div>
+        <div class="controls">
+          <div class="sliders">
+            <div class="slider-row"><label>Zieltemp.</label><input data-slider="target_temp" type="range" min="5" max="40" step="0.5" value="${this.number(cfg.target_temp, 28)}"><input data-pool-key="target_temp" type="number" min="5" max="40" step="0.5" value="${this.number(cfg.target_temp, 28)}"></div>
+            <div class="slider-row"><label>Einschalt-Delta</label><input data-slider="diff_on" type="range" min="0" max="30" step="0.5" value="${this.number(cfg.diff_on, 8)}"><input data-pool-key="diff_on" type="number" min="0" max="30" step="0.5" value="${this.number(cfg.diff_on, 8)}"></div>
+            <div class="slider-row"><label>Ausschalt-Delta</label><input data-slider="diff_off" type="range" min="0" max="30" step="0.5" value="${this.number(cfg.diff_off, 4)}"><input data-pool-key="diff_off" type="number" min="0" max="30" step="0.5" value="${this.number(cfg.diff_off, 4)}"></div>
+          </div>
+          <div class="right-controls">
+            <div class="toggle-row"><span>Automatik</span><label class="switch"><input data-mode-toggle type="checkbox" ${this.checked(mode === "auto")}><span></span></label></div>
+            <div class="toggle-row"><span>Reinigung</span><label class="switch"><input data-pool-key="clean_mode" type="checkbox" ${this.checked(Boolean(cfg.clean_mode ?? data.clean_mode))}><span></span></label></div>
+            ${this.actorHtml("pump", "Pumpe", "mdi:pump")}
+            ${this.actorHtml("valve", "Ventil", "mdi:valve")}
+          </div>
+        </div>
+        <div class="graph-wrap">
+          <div class="graph-title"><span>Temperaturverlauf · letzte ${Number(this.config.hours_to_show || 8)} h</span><span class="legend"><span>Pool</span><span class="collector-key">Absorber</span></span></div>
+          <canvas class="history" width="1000" height="240"></canvas>
+        </div>
+        <div class="schedule">
+          <div class="field"><label>Einschaltzeit</label><input data-pool-key="pump_on" type="time" value="${cfg.pump_on || "08:00"}"></div>
+          <div class="field"><label>Ausschaltzeit</label><input data-pool-key="pump_off" type="time" value="${cfg.pump_off || "16:30"}"></div>
+        </div>
+        <div class="diag">
+          <div class="gauge"><div>CPU temp</div><div class="gauge-ring"><strong>${cpu.toFixed(1)}°C</strong></div></div>
+          <div class="diag-main">
+            <div class="diag-row"><span>WiFi</span><strong>${data.wifi_quality || "–"}</strong></div>
+            <div class="diag-row"><span>Signal</span><strong>${data.wifi_rssi ?? "–"} dBm</strong></div>
+            <div class="diag-row"><span>Version</span><strong>${data.version || "–"}</strong></div>
+          </div>
+          <div class="diag-side">
+            <div class="diag-row"><span>Zeit</span><strong>${this.formatTime(data.time)}</strong></div>
+            <div class="diag-row"><span>Freier Speicher</span><strong>${this.formatBytes(data.free_mem)}</strong></div>
+            <div class="diag-row"><span>IP</span><strong>${data.ip || "–"}</strong></div>
+          </div>
+        </div>
+        <div class="write-status"></div>
+      </ha-card>`;
+    this.bindEvents();
+    this.renderGraph();
+  }
+
+  bindEvents() {
+    this.shadowRoot.querySelectorAll("[data-slider]").forEach((slider) => {
+      const key = slider.dataset.slider;
+      const box = this.shadowRoot.querySelector(`[data-pool-key="${key}"]`);
+      slider.addEventListener("input", () => { box.value = slider.value; });
+      slider.addEventListener("change", () => this.write(key, Number(slider.value)));
+    });
+    this.shadowRoot.querySelectorAll("[data-pool-key]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const key = input.dataset.poolKey;
+        let value = input.value;
+        if (input.type === "checkbox") value = input.checked;
+        else if (input.type === "number") value = Number(input.value);
+        this.write(key, value);
+      });
+    });
+    const mode = this.shadowRoot.querySelector("[data-mode-toggle]");
+    mode?.addEventListener("change", () => this.write("mode", mode.checked ? "auto" : "manual"));
+  }
+
+  historyPoints(entityId) {
+    const rows = this._history?.[entityId] || [];
+    return rows.map((row) => {
+      const value = Number(row.state);
+      const stamp = Date.parse(row.last_changed || row.last_updated || "");
+      return Number.isFinite(value) && Number.isFinite(stamp) ? [stamp, value] : null;
+    }).filter(Boolean);
+  }
+
+  renderGraph() {
+    const canvas = this.shadowRoot?.querySelector("canvas.history");
+    if (!canvas || !this._device) return;
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.font = "22px sans-serif";
+    ctx.fillStyle = getComputedStyle(this).getPropertyValue("--secondary-text-color") || "#777";
+    if (this._historyError) {
+      ctx.fillText(this._historyError, 20, 40);
+      return;
+    }
+    const poolId = this._device.entity_ids?.t_pool;
+    const collectorId = this._device.entity_ids?.t_collector;
+    const pool = this.historyPoints(poolId);
+    const collector = this.historyPoints(collectorId);
+    const all = [...pool, ...collector];
+    if (!all.length) {
+      ctx.fillText("Noch keine Verlaufsdaten", 20, 40);
+      return;
+    }
+    const end = Date.now();
+    const start = end - Number(this.config.hours_to_show || 8) * 3600000;
+    let minY = Math.floor(Math.min(...all.map((p) => p[1])) - 2);
+    let maxY = Math.ceil(Math.max(...all.map((p) => p[1])) + 2);
+    minY = Math.min(minY, 20);
+    maxY = Math.max(maxY, 30);
+    if (maxY - minY < 10) maxY = minY + 10;
+    const left = 58; const right = 12; const top = 12; const bottom = 40;
+    const gx = (t) => left + ((t - start) / (end - start)) * (width - left - right);
+    const gy = (v) => top + (1 - (v - minY) / (maxY - minY)) * (height - top - bottom);
+    ctx.strokeStyle = "#7774"; ctx.lineWidth = 1; ctx.fillStyle = "#888"; ctx.font = "16px sans-serif";
+    for (let i = 0; i <= 4; i += 1) {
+      const val = minY + ((maxY - minY) * i) / 4;
+      const y = gy(val);
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(width - right, y); ctx.stroke();
+      ctx.fillText(val.toFixed(0), 5, y + 5);
+    }
+    for (let i = 0; i <= 4; i += 1) {
+      const t = start + ((end - start) * i) / 4;
+      const x = gx(t);
+      ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, height - bottom); ctx.stroke();
+      const d = new Date(t); const label = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      ctx.fillText(label, Math.max(0, x - 23), height - 10);
+    }
+    const draw = (points, color) => {
+      const visible = points.filter((p) => p[0] >= start && p[0] <= end);
+      if (!visible.length) return;
+      ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.beginPath();
+      visible.forEach((p, idx) => { const x = gx(p[0]); const y = gy(p[1]); if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+      ctx.stroke();
+    };
+    draw(pool, "#2196f3");
+    draw(collector, "#f44336");
+  }
+
+  renderError(error) {
+    this.shadowRoot.innerHTML = `<ha-card><div style="padding:16px;color:var(--error-color)">${error?.message || error}</div></ha-card>`;
+  }
+}
+
+customElements.define("pico-rest-pool-card", PicoRestPoolCard);
+
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type: "pico-rest-pool-card",
+  name: "Pico REST Pool Card",
+  description: "Konfiguration und Visualisierung eines Pico REST Pool Controllers",
+});

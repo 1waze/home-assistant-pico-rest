@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 from typing import Any
 
 import voluptuous as vol
+
 from homeassistant.components import panel_custom, websocket_api
 from homeassistant.components.frontend import add_extra_js_url, async_panel_exists
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN, WEEKDAYS
 from .control import async_write_config, config_value
@@ -320,18 +323,182 @@ async def ws_set_led_day(
     connection.send_result(msg["id"], {"day": msg["day"], **day_patch})
 
 
+POOL_CONFIG_KEYS = (
+    "target_temp",
+    "diff_on",
+    "diff_off",
+    "mode",
+    "clean_mode",
+    "pump_on",
+    "pump_off",
+)
+
+
+def _pool_entries(hass: HomeAssistant):
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        runtime = getattr(entry, "runtime_data", None)
+        if runtime is None:
+            continue
+        coordinator = runtime.coordinator
+        if str(coordinator.info.get("device_type", "")) == "pool_controller":
+            yield entry, coordinator
+
+
+def _pool_config(coordinator) -> dict[str, Any]:
+    config = (coordinator.data or {}).get("_config", {})
+    if not isinstance(config, dict):
+        return {}
+    return {key: config.get(key) for key in POOL_CONFIG_KEYS if key in config}
+
+
+def _validated_pool_value(key: str, value: Any) -> Any:
+    if key in {"clean_mode", "manual_pump", "manual_valve"}:
+        if not isinstance(value, bool):
+            raise ValueError(f"{key} must be boolean")
+        return value
+    if key == "mode":
+        if value not in {"auto", "manual"}:
+            raise ValueError("mode must be auto or manual")
+        return value
+    if key in {"pump_on", "pump_off"}:
+        if not isinstance(value, str) or not re.match(
+            r"^(?:[01]\d|2[0-3]):[0-5]\d$", value
+        ):
+            raise ValueError(f"{key} must be HH:MM")
+        return value
+    if key in {"target_temp", "diff_on", "diff_off"}:
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError) as err:
+            raise ValueError(f"{key} must be numeric") from err
+        low, high = {
+            "target_temp": (5.0, 40.0),
+            "diff_on": (0.0, 30.0),
+            "diff_off": (0.0, 30.0),
+        }[key]
+        if not low <= numeric <= high:
+            raise ValueError(f"{key} must be between {low:g} and {high:g}")
+        return numeric
+    raise ValueError("unsupported pool configuration key")
+
+
+@websocket_api.websocket_command({vol.Required("type"): "pico_rest/pool_state"})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_pool_state(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return pool controller state, config and history entity ids."""
+    registry = er.async_get(hass)
+    devices = []
+    for entry, coordinator in _pool_entries(hass):
+        data = dict(coordinator.data or {})
+        data.pop("_config", None)
+
+        entity_ids: dict[str, str | None] = {
+            "t_pool": None,
+            "t_collector": None,
+            "valve": None,
+        }
+        for registry_entry in er.async_entries_for_config_entry(
+            registry, entry.entry_id
+        ):
+            unique_id = registry_entry.unique_id
+            if registry_entry.domain == "sensor" and unique_id.endswith(":t_pool"):
+                entity_ids["t_pool"] = registry_entry.entity_id
+            elif (
+                registry_entry.domain == "sensor"
+                and unique_id.endswith(":t_collector")
+            ):
+                entity_ids["t_collector"] = registry_entry.entity_id
+            elif (
+                registry_entry.domain == "binary_sensor"
+                and unique_id.endswith(":valve")
+            ):
+                entity_ids["valve"] = registry_entry.entity_id
+
+        devices.append(
+            {
+                "entry_id": entry.entry_id,
+                "name": str(
+                    coordinator.info.get("device_name")
+                    or "Pico REST Poolsteuerung"
+                ),
+                "available": coordinator.last_update_success,
+                "status": data,
+                "config": _pool_config(coordinator),
+                "entity_ids": entity_ids,
+            }
+        )
+    connection.send_result(msg["id"], devices)
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "pico_rest/set_pool_value",
+        vol.Required("entry_id"): str,
+        vol.Required("key"): vol.In(
+            [
+                "target_temp",
+                "diff_on",
+                "diff_off",
+                "mode",
+                "clean_mode",
+                "pump_on",
+                "pump_off",
+                "manual_pump",
+                "manual_valve",
+            ]
+        ),
+        vol.Required("value"): object,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_set_pool_value(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Write one pool controller configuration/control value."""
+    selected = None
+    for entry, coordinator in _pool_entries(hass):
+        if entry.entry_id == msg["entry_id"]:
+            selected = coordinator
+            break
+    if selected is None:
+        connection.send_error(msg["id"], "not_found", "Pool controller not found")
+        return
+    key = msg["key"]
+    try:
+        value = _validated_pool_value(key, msg["value"])
+        await async_write_config(selected, {key: value})
+    except (ValueError, TypeError) as err:
+        connection.send_error(msg["id"], "invalid_format", str(err))
+        return
+    except Exception as err:
+        connection.send_error(msg["id"], "write_failed", str(err))
+        return
+    connection.send_result(msg["id"], {"key": key, "value": value})
+
+
 async def async_register_frontend(hass: HomeAssistant) -> None:
     """Register Pico REST color panel and websocket commands."""
     websocket_api.async_register_command(hass, ws_led_colors)
     websocket_api.async_register_command(hass, ws_set_led_color)
     websocket_api.async_register_command(hass, ws_set_led_config)
     websocket_api.async_register_command(hass, ws_set_led_day)
+    websocket_api.async_register_command(hass, ws_pool_state)
+    websocket_api.async_register_command(hass, ws_set_pool_value)
 
     frontend_dir = Path(__file__).parent / "frontend"
     await hass.http.async_register_static_paths(
         [StaticPathConfig(STATIC_URL, str(frontend_dir), False)]
     )
-    add_extra_js_url(hass, f"{STATIC_URL}/pico-rest-day-card.js?v=0441")
+    add_extra_js_url(hass, f"{STATIC_URL}/pico-rest-day-card.js?v=0500")
+    add_extra_js_url(hass, f"{STATIC_URL}/pico-rest-pool-card.js?v=0503")
 
     if not async_panel_exists(hass, PANEL_URL):
         await panel_custom.async_register_panel(

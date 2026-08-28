@@ -1,5 +1,14 @@
 # Changelog
 
+
+
+## v0.5.0
+
+- Added `pico-rest-pool-card` for Pool Controller configuration and visualization.
+- Shows Pool and collector temperature, operating state, pump and valve status, schedules and diagnostics.
+- Adds direct controls for automatic/manual mode, cleaning mode, pump/valve manual control, target temperature and temperature deltas.
+- Adds Home Assistant history graph for Pool and collector temperature.
+
 ## 0.4.4
 
 - Extend `custom:pico-rest-led-config-card` to a complete global LED configuration card.
