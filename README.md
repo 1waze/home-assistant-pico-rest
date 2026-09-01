@@ -12,9 +12,14 @@ Custom Integration für Geräte mit **Pico REST API v1**.
 
 ## Aktueller Stand
 
-**Release:** v0.5.0  
+**Release:** v0.5.2  
 
-v0.5.0 ergänzt die Integration um eine zentrale Pool-Controller-Karte mit Konfiguration, Live-Status, Diagnose und Temperaturverlauf. Die LED-Karten aus v0.4.x bleiben unverändert.
+v0.5.2 ergänzt die Integration um eine zentrale Pool-Controller-Karte mit Konfiguration, Live-Status, Diagnose und Temperaturverlauf. Die LED-Karten aus v0.4.x bleiben unverändert.
+
+## Dokumentation
+
+Die gemeinsame Schnittstellenspezifikation für alle unterstützten Pico-Geräte
+befindet sich in [PICO_REST_API_v1.md](PICO_REST_API_v1.md).
 
 ### Poolsteuerung
 
