@@ -23,10 +23,13 @@ class PicoRestInvalidResponse(PicoRestError):
 class PicoRestClient:
     """Small async client for Pico REST API v1."""
 
-    def __init__(self, session: ClientSession, host: str, port: int = 80) -> None:
+    def __init__(
+        self, session: ClientSession, host: str, port: int = 80, api_token: str | None = None
+    ) -> None:
         self._session = session
         self.host = host.strip().removeprefix("http://").removeprefix("https://").rstrip("/")
         self.port = port
+        self._api_token = api_token.strip() if api_token else None
 
     @property
     def base_url(self) -> str:
@@ -57,9 +60,14 @@ class PicoRestClient:
     ) -> dict[str, Any]:
         """POST JSON and return a JSON object."""
         url = f"{self.base_url}{path}"
+        headers = {}
+        if self._api_token:
+            headers["Authorization"] = f"Bearer {self._api_token}"
         try:
             async with async_timeout.timeout(5):
-                async with self._session.post(url, json=payload or {}) as response:
+                async with self._session.post(
+                    url, json=payload or {}, headers=headers
+                ) as response:
                     data = await response.json(content_type=None)
                     if response.status < 200 or response.status >= 300:
                         detail = data.get("error") if isinstance(data, dict) else None

@@ -1,6 +1,12 @@
 # Changelog
 
 
+## v0.5.2
+- Bearer-Token-Unterstützung für geschützte Pico-Schreibzugriffe
+- Token-Konfiguration über Config Flow / Reconfigure
+- Abwärtskompatibilität zu Pico-Firmware ohne Authentifizierung
+- Hash-basiertes Cache-Busting für Pico-REST-Frontend-Ressourcen
+- Pool-Dashboard weiterhin vollständig unterstützt
 
 ## v0.5.0
 

@@ -25,12 +25,23 @@
           "host": "Neue IP-Adresse oder DNS-Name, ohne http://",
           "port": "HTTP-Port des Pico (normalerweise 80)"
         }
+      },
+      "auth": {
+        "title": "Pico-REST-Schreibzugriff",
+        "description": "Die Firmware schützt Schreibzugriffe mit einem Bearer-Token. Das Token wird nur in der Home-Assistant-Konfiguration gespeichert und bei POST-Anfragen gesendet.",
+        "data": {
+          "api_token": "API-Token"
+        },
+        "data_description": {
+          "api_token": "Bearer-Token des Pico REST Geräts"
+        }
       }
     },
     "error": {
       "cannot_connect": "Verbindung zum Pico konnte nicht hergestellt werden.",
       "unsupported_device": "Das Gerät stellt keine unterstützte Pico REST API v1 bereit.",
-      "unknown": "Unerwarteter Fehler."
+      "unknown": "Unerwarteter Fehler.",
+      "required": "API-Token darf nicht leer sein."
     },
     "abort": {
       "already_configured": "Dieser Pico ist bereits eingerichtet.",

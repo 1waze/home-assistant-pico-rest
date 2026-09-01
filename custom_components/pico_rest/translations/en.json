@@ -25,12 +25,23 @@
           "host": "New IP address or DNS name, without http://",
           "port": "HTTP port of the Pico (normally 80)"
         }
+      },
+      "auth": {
+        "title": "Pico REST write access",
+        "description": "The firmware protects write operations with a bearer token. The token is stored only in the Home Assistant configuration and sent with POST requests.",
+        "data": {
+          "api_token": "API token"
+        },
+        "data_description": {
+          "api_token": "Bearer token of the Pico REST device"
+        }
       }
     },
     "error": {
       "cannot_connect": "Could not connect to the Pico.",
       "unsupported_device": "The device does not provide a supported Pico REST API v1 endpoint.",
-      "unknown": "Unexpected error."
+      "unknown": "Unexpected error.",
+      "required": "API token must not be empty."
     },
     "abort": {
       "already_configured": "This Pico is already configured.",

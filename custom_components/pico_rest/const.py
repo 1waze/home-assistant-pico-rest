@@ -5,6 +5,7 @@ from datetime import timedelta
 DOMAIN = "pico_rest"
 CONF_HOST = "host"
 CONF_PORT = "port"
+CONF_API_TOKEN = "api_token"
 DEFAULT_PORT = 80
 API_VERSION = 1
 

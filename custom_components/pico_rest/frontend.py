@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from pathlib import Path
 from typing import Any
@@ -17,8 +18,24 @@ from .const import DOMAIN, WEEKDAYS
 from .control import async_write_config, config_value
 
 PANEL_URL = "pico-rest-colors"
-STATIC_URL = "/pico_rest_static"
+STATIC_URL_BASE = "/pico_rest_static"
 PANEL_ELEMENT = "pico-rest-color-panel"
+
+
+def _frontend_build_hash(frontend_dir: Path) -> str:
+    """Return a stable build id derived from the shipped frontend JS files."""
+    digest = hashlib.sha256()
+    for filename in (
+        "pico-rest-day-card.js",
+        "pico-rest-pool-card.js",
+        "pico-rest-color-panel.js",
+    ):
+        path = frontend_dir / filename
+        digest.update(filename.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()[:12]
 
 LED_GLOBAL_CONFIG_KEYS = (
     "brightness",
@@ -493,18 +510,21 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_set_pool_value)
 
     frontend_dir = Path(__file__).parent / "frontend"
+    frontend_build = _frontend_build_hash(frontend_dir)
+    static_url = f"{STATIC_URL_BASE}/{frontend_build}"
+
     await hass.http.async_register_static_paths(
-        [StaticPathConfig(STATIC_URL, str(frontend_dir), False)]
+        [StaticPathConfig(static_url, str(frontend_dir), False)]
     )
-    add_extra_js_url(hass, f"{STATIC_URL}/pico-rest-day-card.js?v=0500")
-    add_extra_js_url(hass, f"{STATIC_URL}/pico-rest-pool-card.js?v=0503")
+    add_extra_js_url(hass, f"{static_url}/pico-rest-day-card.js")
+    add_extra_js_url(hass, f"{static_url}/pico-rest-pool-card.js")
 
     if not async_panel_exists(hass, PANEL_URL):
         await panel_custom.async_register_panel(
             hass=hass,
             frontend_url_path=PANEL_URL,
             webcomponent_name=PANEL_ELEMENT,
-            module_url=f"{STATIC_URL}/pico-rest-color-panel.js?v=042",
+            module_url=f"{static_url}/pico-rest-color-panel.js",
             sidebar_title="Pico REST Farben",
             sidebar_icon="mdi:palette",
             require_admin=True,

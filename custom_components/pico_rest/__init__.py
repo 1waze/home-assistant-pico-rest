@@ -16,7 +16,7 @@ from .api import (
     PicoRestConnectionError,
     PicoRestInvalidResponse,
 )
-from .const import DEFAULT_PORT, DOMAIN, PLATFORMS, SUPPORTED_DEVICE_TYPES
+from .const import CONF_API_TOKEN, DEFAULT_PORT, DOMAIN, PLATFORMS, SUPPORTED_DEVICE_TYPES
 from .coordinator import PicoRestCoordinator
 from .frontend import async_register_frontend
 from .migration import (
@@ -51,6 +51,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PicoRestConfigEntry) -> 
         session,
         entry.data[CONF_HOST],
         entry.data.get(CONF_PORT, DEFAULT_PORT),
+        entry.data.get(CONF_API_TOKEN),
     )
 
     try:
